@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mosaic-harness"
+version = "0.1.0"
+description = "A cohesive Python agent harness SDK built on LangChain and LangGraph."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Biang" }]
+dependencies = [
+  "langchain>=1.0,<2.0",
+  "langgraph>=1.0,<2.0",
+  "langsmith>=0.4,<1.0",
+  "pydantic>=2.10,<3.0",
+]
+
+[project.optional-dependencies]
+mcp = ["langchain-mcp-adapters>=0.2,<1.0"]
+openai = ["langchain-openai>=1.0,<2.0"]
+anthropic = ["langchain-anthropic>=1.0,<2.0"]
+ollama = ["langchain-ollama>=1.0,<2.0"]
+deepseek = ["langchain-deepseek>=1.0,<2.0"]
+kimi = ["langchain-moonshot>=0.1,<1.0"]
+qwen = ["langchain-qwq>=0.1,<1.0"]
+models = [
+  "langchain-openai>=1.0,<2.0",
+  "langchain-anthropic>=1.0,<2.0",
+  "langchain-ollama>=1.0,<2.0",
+  "langchain-deepseek>=1.0,<2.0",
+  "langchain-moonshot>=0.1,<1.0",
+  "langchain-qwq>=0.1,<1.0",
+]
+dev = [
+  "mypy>=1.15",
+  "pytest>=8.3",
+  "pytest-asyncio>=0.25",
+  "pytest-cov>=6.0",
+  "ruff>=0.11",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mosaic_harness"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+branch = true
+source = ["mosaic_harness"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["mosaic_harness"]
