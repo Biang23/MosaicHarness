@@ -168,6 +168,20 @@ AgentSpec(
 )
 ~~~
 
+可以在不调用模型的情况下检查 Agent 的模型、凭证和能力兼容性：
+
+~~~python
+report = sdk.doctor("researcher")
+print(report.ok)
+for check in report.checks:
+    print(check.name, check.status, check.message)
+~~~
+
+doctor 会检查 provider integration 是否安装、凭证环境变量是否配置，以及
+tool calling、structured output、streaming、parallel tool calls 和 reasoning
+等能力是否满足当前 Agent。`unknown` 能力会被标记为需要 live probe，不会被
+静默判断为支持。
+
 enabled_capabilities=None 时继承 MosaicConfig.enabled_capabilities。
 显式传入空元组可以关闭该 Agent 的所有可选能力。
 
@@ -386,6 +400,20 @@ sdk = MosaicHarness(
 
 每次运行会附加 Agent、User、Session、Thread、Tags 和自定义 metadata。
 Mosaic Harness 不会将 API Key 放入 trace metadata，也不会强制修改全局环境变量。
+
+## Logging
+
+Mosaic 使用标准 Python `logging`，只发出 `mosaic_harness.*` logger records，
+不会替宿主应用配置 root handler。日志分级约定如下：
+
+- `INFO`：Agent 定义、模型解析、run started/completed/failed；
+- `DEBUG`：graph cache、middleware、tool 成功和执行耗时；
+- `WARNING`：工具 retry、审批阻断；
+- `ERROR`：模型依赖缺失、run 失败、工具最终失败或超时。
+
+SDK 日志不会记录完整 prompt、模型输出、工具参数/结果或 API key。应用可以通过
+`logging` 配置 `mosaic_harness` logger；生产环境不要直接打开 DEBUG，除非已经
+配置了日志访问控制和脱敏策略。
 
 ## 项目结构
 

@@ -50,6 +50,21 @@ def test_deepseek_reasoner_declares_tool_calling_as_unsupported() -> None:
     assert capabilities.reasoning is True
 
 
+def test_deepseek_chat_declares_agent_capabilities() -> None:
+    capabilities = ModelFactory().describe(ModelSpec(provider="deepseek", model="deepseek-chat"))
+
+    assert capabilities.tool_calling is True
+    assert capabilities.structured_output is True
+    assert capabilities.streaming is True
+
+
+def test_provider_model_string_uses_the_provider_capability_profile() -> None:
+    capabilities = ModelFactory().describe("deepseek:deepseek-reasoner")
+
+    assert capabilities.tool_calling is False
+    assert capabilities.structured_output is False
+
+
 def test_factory_builds_openai_compatible_model_with_custom_endpoint() -> None:
     pytest.importorskip("langchain_openai")
     model = ModelFactory().resolve(

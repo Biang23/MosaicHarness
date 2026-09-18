@@ -15,6 +15,8 @@ class QwenProvider(ModelProvider):
     aliases = ("qwq",)
     optional_dependency = "langchain-qwq"
     install_extra = "qwen"
+    module_name = "langchain_qwq"
+    credential_env = "DASHSCOPE_API_KEY"
 
     def build(self, spec: ModelSpec) -> BaseChatModel:
         try:

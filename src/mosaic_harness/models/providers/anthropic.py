@@ -14,6 +14,8 @@ class AnthropicProvider(ModelProvider):
     name = "anthropic"
     optional_dependency = "langchain-anthropic"
     install_extra = "anthropic"
+    module_name = "langchain_anthropic"
+    credential_env = "ANTHROPIC_API_KEY"
 
     def build(self, spec: ModelSpec) -> BaseChatModel:
         try:

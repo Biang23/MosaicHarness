@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import pytest
 from langchain.tools import ToolRuntime, tool
 from langchain_core.messages import AIMessage
@@ -165,6 +167,32 @@ async def test_async_invoke_uses_the_same_public_result_contract() -> None:
     )
 
     assert result.output_text == "async done"
+
+
+def test_invoke_logs_run_lifecycle_without_logging_prompt_or_output(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    sdk = MosaicHarness()
+    sdk.define(
+        AgentSpec(
+            name="logged-agent",
+            system_prompt="Answer.",
+            model=ScriptedChatModel(responses=[AIMessage(content="secret output")]),
+        )
+    )
+
+    with caplog.at_level(logging.INFO, logger="mosaic_harness"):
+        sdk.invoke(
+            "logged-agent",
+            "secret prompt",
+            context=RunContext(user_id="u-1", session_id="s-1"),
+            thread_id="logged-thread",
+        )
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("run.started" in message for message in messages)
+    assert any("run.completed" in message for message in messages)
+    assert all(secret not in caplog.text for secret in ("secret prompt", "secret output"))
 
 
 def test_define_validates_capabilities_and_names() -> None:
@@ -434,3 +462,29 @@ def test_runtime_rejects_explicitly_unsupported_structured_output() -> None:
         )
 
     assert provider.build_count == 1
+
+
+def test_doctor_reports_model_capability_mismatch_without_invoking_model() -> None:
+    provider = RuntimeFakeProvider(
+        capabilities=ModelCapabilities(tool_calling=False, structured_output=False)
+    )
+    factory = ModelFactory()
+    factory.register(provider)
+    sdk = MosaicHarness(config=tools_config(), model_factory=factory)
+    sdk.tools.register(current_user)
+    sdk.define(
+        AgentSpec(
+            name="doctor-agent",
+            system_prompt="Use the tool.",
+            model=ModelSpec(provider="runtime-fake", model="test"),
+            tool_names=("current_user",),
+        )
+    )
+
+    report = sdk.doctor("doctor-agent")
+
+    assert report.ok is False
+    assert report.model_provider == "runtime-fake"
+    assert report.requirements.tool_calling is True
+    assert any(check.status == "unsupported" for check in report.checks)
+    assert provider.build_count == 0

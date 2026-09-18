@@ -1,6 +1,12 @@
 from .capabilities.mcp.client import MCPServerConfig, MCPToolProvider
 from .capabilities.memory.store import MemoryRecord, MosaicMemory
 from .capabilities.observability.langsmith import LangSmithObservability
+from .capabilities.tools.execution import (
+    ToolExecutionMiddleware,
+    ToolExecutionPolicy,
+    ToolExecutionRecord,
+    ToolExecutionRecorder,
+)
 from .capabilities.tools.registry import ToolRegistry
 from .capabilities.tools.result import ToolResult
 from .config import (
@@ -36,10 +42,19 @@ from .core.models import (
     ToolCallRecord,
 )
 from .core.runtime import MosaicHarness
-from .models import ModelFactory, ModelProvider, ProviderRegistry
+from .models import (
+    CapabilityCheck,
+    ModelDoctorReport,
+    ModelFactory,
+    ModelInspection,
+    ModelProvider,
+    ModelRequirements,
+    ProviderRegistry,
+)
 
 __all__ = [
     "AgentSpec",
+    "CapabilityCheck",
     "CompactionConfig",
     "DuplicateAgentError",
     "DuplicateToolError",
@@ -55,9 +70,12 @@ __all__ = [
     "MessageRecord",
     "MissingOptionalDependencyError",
     "ModelCapabilities",
+    "ModelDoctorReport",
     "ModelFactory",
     "ModelInput",
+    "ModelInspection",
     "ModelProvider",
+    "ModelRequirements",
     "ModelSpec",
     "MosaicConfig",
     "MosaicHarness",
@@ -69,6 +87,10 @@ __all__ = [
     "RunResult",
     "SkillsConfig",
     "ToolCallRecord",
+    "ToolExecutionMiddleware",
+    "ToolExecutionPolicy",
+    "ToolExecutionRecord",
+    "ToolExecutionRecorder",
     "ToolRegistry",
     "ToolResult",
     "ToolsConfig",

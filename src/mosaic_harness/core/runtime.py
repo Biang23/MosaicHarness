@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any
 from uuid import uuid4
@@ -13,9 +14,20 @@ from langgraph.checkpoint.memory import InMemorySaver
 from ..capabilities.mcp.client import MCPToolProvider
 from ..capabilities.memory.store import MosaicMemory
 from ..capabilities.observability.langsmith import LangSmithObservability
+from ..capabilities.tools.execution import (
+    ToolExecutionMiddleware,
+    ToolExecutionPolicy,
+    ToolExecutionRecorder,
+)
 from ..capabilities.tools.registry import ToolRegistry
 from ..config import MosaicConfig
 from ..models import ModelFactory
+from ..models.capabilities import (
+    CapabilityCheck,
+    CapabilityStatus,
+    ModelDoctorReport,
+    ModelRequirements,
+)
 from .errors import DuplicateAgentError, UnknownAgentError, UnsupportedModelCapabilityError
 from .manager import CapabilityManager
 from .models import (
@@ -27,6 +39,8 @@ from .models import (
     RunResult,
     ToolCallRecord,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class MosaicHarness:
@@ -40,6 +54,8 @@ class MosaicHarness:
         checkpointer: BaseCheckpointSaver[Any] | None = None,
         observability: LangSmithObservability | None = None,
         model_factory: ModelFactory | None = None,
+        tool_policies: Mapping[str, ToolExecutionPolicy] | None = None,
+        tool_recorder: ToolExecutionRecorder | None = None,
     ) -> None:
         self.config = config or MosaicConfig.from_env()
         self.memory = memory or MosaicMemory.in_memory()
@@ -51,6 +67,8 @@ class MosaicHarness:
         )
         self._checkpointer = checkpointer or InMemorySaver()
         self._model_factory = model_factory or ModelFactory()
+        self._tool_policies = dict(tool_policies or {})
+        self._tool_recorder = tool_recorder or ToolExecutionRecorder()
         self._tools = ToolRegistry()
         self._capabilities = CapabilityManager(
             self.config,
@@ -61,6 +79,11 @@ class MosaicHarness:
         self._agents: dict[str, AgentSpec] = {}
         self._compiled: dict[str, tuple[str, Any]] = {}
         self._resolved_models: dict[str, tuple[str, Any]] = {}
+        logger.debug(
+            "harness.initialized capabilities=%s tools=%d",
+            self.config.enabled_capabilities,
+            len(self._tools.names),
+        )
 
     @property
     def tools(self) -> ToolRegistry:
@@ -74,6 +97,62 @@ class MosaicHarness:
     def agent_names(self) -> tuple[str, ...]:
         return tuple(self._agents)
 
+    @property
+    def tool_records(self) -> tuple[Any, ...]:
+        return self._tool_recorder.records
+
+    def doctor(self, agent_name: str) -> ModelDoctorReport:
+        spec = self._spec(agent_name)
+        if spec.model is None:
+            raise ValueError(f"agent '{spec.name}' requires a model")
+        enabled = self._capabilities.enabled_names(spec)
+        tool_count = len(spec.tool_names)
+        if "memory" in enabled:
+            tool_count += 3
+        if "skills" in enabled:
+            tool_count += 2
+        requirements = ModelRequirements.from_agent(spec, tool_count)
+        inspection = self._model_factory.inspect(spec.model)
+        checks = tuple(
+            _capability_check(
+                name,
+                getattr(requirements, name),
+                getattr(inspection.capabilities, name),
+            )
+            for name in (
+                "tool_calling",
+                "structured_output",
+                "streaming",
+                "parallel_tool_calls",
+                "reasoning",
+            )
+        )
+        recommendations: list[str] = []
+        if not inspection.provider_installed:
+            recommendations.append(f"Install the provider integration for '{inspection.provider}'.")
+        if inspection.credential_env and not inspection.credential_configured:
+            recommendations.append(
+                f"Configure the '{inspection.credential_env}' environment variable."
+            )
+        for check in checks:
+            if check.status == "unsupported":
+                recommendations.append(
+                    f"Use a model that supports {check.name} or disable the "
+                    "corresponding Agent requirement."
+                )
+        return ModelDoctorReport(
+            agent_name=spec.name,
+            model_provider=inspection.provider,
+            model_name=inspection.model,
+            capabilities=inspection.capabilities,
+            requirements=requirements,
+            checks=checks,
+            provider_installed=inspection.provider_installed,
+            credential_env=inspection.credential_env,
+            credential_configured=inspection.credential_configured,
+            recommendations=tuple(recommendations),
+        )
+
     def define(self, spec: AgentSpec) -> AgentSpec:
         if spec.model is None:
             raise ValueError(f"agent '{spec.name}' requires a model")
@@ -81,6 +160,12 @@ class MosaicHarness:
             raise DuplicateAgentError(f"agent already defined: {spec.name}")
         self._capabilities.validate(spec)
         self._agents[spec.name] = spec
+        logger.info(
+            "agent.defined agent=%s model=%s capabilities=%s",
+            spec.name,
+            _model_label(spec),
+            spec.enabled_capabilities or self.config.enabled_capabilities,
+        )
         return spec
 
     async def load_mcp(self, provider: MCPToolProvider) -> tuple[str, ...]:
@@ -98,22 +183,47 @@ class MosaicHarness:
         tags: Sequence[str] = (),
         metadata: Mapping[str, Any] | None = None,
     ) -> RunResult:
-        spec = self._spec(agent_name)
-        graph, _ = self._graph(spec)
-        config = self._run_config(
-            spec,
-            context,
-            thread_id=thread_id,
-            tags=tags,
-            metadata=metadata,
+        run_id = str(uuid4())
+        logger.info(
+            "run.started agent=%s thread_id=%s run_id=%s mode=sync",
+            agent_name,
+            thread_id,
+            run_id,
         )
-        with self.observability.tracing():
-            state = graph.invoke(
-                {"messages": [{"role": "user", "content": prompt}]},
-                config=config,
-                context=context,
+        try:
+            spec = self._spec(agent_name)
+            graph, _ = self._graph(spec)
+            config = self._run_config(
+                spec,
+                context,
+                thread_id=thread_id,
+                tags=tags,
+                metadata=metadata,
             )
-        return self._result(spec, thread_id, state)
+            with self.observability.tracing():
+                state = graph.invoke(
+                    {"messages": [{"role": "user", "content": prompt}]},
+                    config=config,
+                    context=context,
+                )
+            result = self._result(spec, thread_id, state)
+            logger.info(
+                "run.completed agent=%s thread_id=%s run_id=%s output_chars=%d",
+                agent_name,
+                thread_id,
+                run_id,
+                len(result.output_text),
+            )
+            return result
+        except Exception as exc:
+            logger.error(
+                "run.failed agent=%s thread_id=%s run_id=%s error_type=%s",
+                agent_name,
+                thread_id,
+                run_id,
+                type(exc).__name__,
+            )
+            raise
 
     async def ainvoke(
         self,
@@ -125,22 +235,47 @@ class MosaicHarness:
         tags: Sequence[str] = (),
         metadata: Mapping[str, Any] | None = None,
     ) -> RunResult:
-        spec = self._spec(agent_name)
-        graph, _ = self._graph(spec)
-        config = self._run_config(
-            spec,
-            context,
-            thread_id=thread_id,
-            tags=tags,
-            metadata=metadata,
+        run_id = str(uuid4())
+        logger.info(
+            "run.started agent=%s thread_id=%s run_id=%s mode=async",
+            agent_name,
+            thread_id,
+            run_id,
         )
-        with self.observability.tracing():
-            state = await graph.ainvoke(
-                {"messages": [{"role": "user", "content": prompt}]},
-                config=config,
-                context=context,
+        try:
+            spec = self._spec(agent_name)
+            graph, _ = self._graph(spec)
+            config = self._run_config(
+                spec,
+                context,
+                thread_id=thread_id,
+                tags=tags,
+                metadata=metadata,
             )
-        return self._result(spec, thread_id, state)
+            with self.observability.tracing():
+                state = await graph.ainvoke(
+                    {"messages": [{"role": "user", "content": prompt}]},
+                    config=config,
+                    context=context,
+                )
+            result = self._result(spec, thread_id, state)
+            logger.info(
+                "run.completed agent=%s thread_id=%s run_id=%s output_chars=%d",
+                agent_name,
+                thread_id,
+                run_id,
+                len(result.output_text),
+            )
+            return result
+        except Exception as exc:
+            logger.error(
+                "run.failed agent=%s thread_id=%s run_id=%s error_type=%s",
+                agent_name,
+                thread_id,
+                run_id,
+                type(exc).__name__,
+            )
+            raise
 
     async def astream_events(
         self,
@@ -162,6 +297,12 @@ class MosaicHarness:
             metadata=metadata,
         )
         root_run_id = str(uuid4())
+        logger.info(
+            "run.started agent=%s thread_id=%s run_id=%s mode=events",
+            agent_name,
+            thread_id,
+            root_run_id,
+        )
         yield HarnessEvent(
             type="run.started",
             agent_name=spec.name,
@@ -181,6 +322,13 @@ class MosaicHarness:
                     if normalized is not None:
                         yield normalized
         except Exception as exc:
+            logger.error(
+                "run.failed agent=%s thread_id=%s run_id=%s error_type=%s",
+                agent_name,
+                thread_id,
+                root_run_id,
+                type(exc).__name__,
+            )
             yield HarnessEvent(
                 type="run.failed",
                 agent_name=spec.name,
@@ -194,6 +342,12 @@ class MosaicHarness:
             agent_name=spec.name,
             thread_id=thread_id,
             run_id=root_run_id,
+        )
+        logger.info(
+            "run.completed agent=%s thread_id=%s run_id=%s mode=events",
+            agent_name,
+            thread_id,
+            root_run_id,
         )
 
     def _spec(self, name: str) -> AgentSpec:
@@ -237,16 +391,31 @@ class MosaicHarness:
                 self._tools.version,
                 hash(assembly.system_prompt),
                 tuple(type(item).__qualname__ for item in assembly.middleware),
+                repr(self._tool_policies),
             )
         )
         if cached is not None and cached[0] == cache_key:
+            logger.debug("graph.cache_hit agent=%s", spec.name)
             return cached[1], assembly.enabled_capabilities
+        logger.debug(
+            "graph.compile agent=%s tools=%d middleware=%d capabilities=%s",
+            spec.name,
+            len(assembly.tools),
+            len(assembly.middleware),
+            assembly.enabled_capabilities,
+        )
         has_memory = "memory" in assembly.enabled_capabilities
         graph = create_agent(
             model=model,
             tools=list(assembly.tools),
             system_prompt=assembly.system_prompt,
-            middleware=list(assembly.middleware),
+            middleware=[
+                *assembly.middleware,
+                ToolExecutionMiddleware(
+                    policies=self._tool_policies,
+                    recorder=self._tool_recorder,
+                ),
+            ],
             response_format=spec.response_format,
             context_schema=RunContext,
             checkpointer=self._checkpointer if has_memory else None,
@@ -394,6 +563,29 @@ def _model_label(spec: AgentSpec) -> str:
     if isinstance(model, ModelSpec):
         return f"{model.provider}:{model.model}"
     return type(model).__name__ if model is not None else "unknown"
+
+
+def _capability_check(name: str, required: bool, supported: bool | None) -> CapabilityCheck:
+    status: CapabilityStatus
+    if not required:
+        status = "not_required"
+        message = f"{name} is not required by this Agent."
+    elif supported is False:
+        status = "unsupported"
+        message = f"The selected model does not support {name}."
+    elif supported is True:
+        status = "satisfied"
+        message = f"The selected model supports {name}."
+    else:
+        status = "unknown"
+        message = f"The selected model capability for {name} is unknown; run a live probe."
+    return CapabilityCheck(
+        name=name,
+        required=required,
+        supported=supported,
+        status=status,
+        message=message,
+    )
 
 
 def _normalize_event(

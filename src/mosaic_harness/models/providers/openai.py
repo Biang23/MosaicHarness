@@ -14,6 +14,8 @@ class OpenAIProvider(ModelProvider):
     name = "openai"
     optional_dependency = "langchain-openai"
     install_extra = "openai"
+    module_name = "langchain_openai"
+    credential_env = "OPENAI_API_KEY"
 
     def build(self, spec: ModelSpec) -> BaseChatModel:
         try:

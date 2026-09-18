@@ -13,6 +13,8 @@ class OllamaProvider(ModelProvider):
     name = "ollama"
     optional_dependency = "langchain-ollama"
     install_extra = "ollama"
+    module_name = "langchain_ollama"
+    credential_env = None
 
     def build(self, spec: ModelSpec) -> BaseChatModel:
         try:

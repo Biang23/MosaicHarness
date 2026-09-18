@@ -15,6 +15,8 @@ class MoonshotProvider(ModelProvider):
     aliases = ("moonshot",)
     optional_dependency = "langchain-moonshot"
     install_extra = "kimi"
+    module_name = "langchain_moonshot"
+    credential_env = "MOONSHOT_API_KEY"
 
     def build(self, spec: ModelSpec) -> BaseChatModel:
         try:

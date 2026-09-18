@@ -14,6 +14,8 @@ class DeepSeekProvider(ModelProvider):
     name = "deepseek"
     optional_dependency = "langchain-deepseek"
     install_extra = "deepseek"
+    module_name = "langchain_deepseek"
+    credential_env = "DEEPSEEK_API_KEY"
 
     def build(self, spec: ModelSpec) -> BaseChatModel:
         try:
