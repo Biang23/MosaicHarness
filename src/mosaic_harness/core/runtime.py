@@ -106,7 +106,7 @@ class MosaicHarness:
         if spec.model is None:
             raise ValueError(f"agent '{spec.name}' requires a model")
         enabled = self._capabilities.enabled_names(spec)
-        tool_count = len(spec.tool_names)
+        tool_count = len(set(spec.tool_names).union(self._tools.builtin_names))
         if "memory" in enabled:
             tool_count += 3
         if "skills" in enabled:

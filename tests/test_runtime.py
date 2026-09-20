@@ -20,7 +20,6 @@ from mosaic_harness import (
 from mosaic_harness.core.errors import (
     DuplicateAgentError,
     DuplicateToolError,
-    InvalidAgentSpecError,
     UnknownAgentError,
     UnknownToolError,
 )
@@ -223,7 +222,7 @@ def test_define_validates_capabilities_and_names() -> None:
                 tool_names=("missing",),
             )
         )
-    with pytest.raises(InvalidAgentSpecError):
+    with pytest.raises(UnknownToolError):
         MosaicHarness().define(
             AgentSpec(
                 name="tool-capability-off",

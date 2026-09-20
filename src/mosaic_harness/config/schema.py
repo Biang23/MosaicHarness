@@ -24,6 +24,21 @@ class ToolsConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class NetworkConfig:
+    enabled: bool = False
+    provider: str = "ddgs"
+    timeout_seconds: float = 10.0
+    max_response_bytes: int = 2_000_000
+    allowed_domains: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class BuiltinsConfig:
+    tools_enabled: bool = True
+    skills_enabled: bool = True
+
+
+@dataclass(frozen=True, slots=True)
 class MemoryConfig:
     enabled: bool = False
     auto_recall: bool = False
@@ -64,10 +79,12 @@ class MosaicConfig:
     its own config has enabled=True. Agents can override the list explicitly.
     """
 
-    enabled_capabilities: tuple[str, ...] = ()
-    tools: ToolsConfig = field(default_factory=ToolsConfig)
+    enabled_capabilities: tuple[str, ...] = ("tools", "skills")
+    tools: ToolsConfig = field(default_factory=lambda: ToolsConfig(enabled=True))
+    network: NetworkConfig = field(default_factory=NetworkConfig)
+    builtins: BuiltinsConfig = field(default_factory=BuiltinsConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
-    skills: SkillsConfig = field(default_factory=SkillsConfig)
+    skills: SkillsConfig = field(default_factory=lambda: SkillsConfig(enabled=True))
     compaction: CompactionConfig = field(default_factory=CompactionConfig)
     observability: ObservabilityConfig = field(default_factory=ObservabilityConfig)
 
@@ -75,6 +92,8 @@ class MosaicConfig:
     def from_env(cls) -> MosaicConfig:
         """Load safe, built-in capability aliases from MOSAIC_* variables."""
         requested = list(_csv(os.getenv("MOSAIC_CAPABILITIES")))
+        if not requested:
+            requested.extend(("tools", "skills"))
         for name, variable in (
             ("tools", "MOSAIC_TOOLS_ENABLED"),
             ("memory", "MOSAIC_MEMORY_ENABLED"),
@@ -89,6 +108,17 @@ class MosaicConfig:
             enabled_capabilities=capabilities,
             tools=ToolsConfig(
                 enabled="tools" in capabilities or _bool(os.getenv("MOSAIC_TOOLS_ENABLED"))
+            ),
+            network=NetworkConfig(
+                enabled=_bool(os.getenv("MOSAIC_NETWORK_ENABLED")),
+                provider=os.getenv("MOSAIC_NETWORK_PROVIDER", "ddgs"),
+                timeout_seconds=float(os.getenv("MOSAIC_NETWORK_TIMEOUT_SECONDS", "10")),
+                max_response_bytes=int(os.getenv("MOSAIC_NETWORK_MAX_RESPONSE_BYTES", "2000000")),
+                allowed_domains=_csv(os.getenv("MOSAIC_NETWORK_ALLOWED_DOMAINS")),
+            ),
+            builtins=BuiltinsConfig(
+                tools_enabled=_bool(os.getenv("MOSAIC_BUILTIN_TOOLS_ENABLED"), default=True),
+                skills_enabled=_bool(os.getenv("MOSAIC_BUILTIN_SKILLS_ENABLED"), default=True),
             ),
             memory=MemoryConfig(
                 enabled="memory" in capabilities or _bool(os.getenv("MOSAIC_MEMORY_ENABLED")),

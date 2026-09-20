@@ -12,6 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "Biang" }]
 dependencies = [
   "langchain>=1.0,<2.0",
+  "langchain-core>=1.6.2",
   "langgraph>=1.0,<2.0",
   "langsmith>=0.4,<1.0",
   "pydantic>=2.10,<3.0",

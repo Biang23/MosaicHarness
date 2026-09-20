@@ -30,6 +30,7 @@ class CapabilityManager:
     """Resolves and composes independently enabled capability plugins."""
 
     def __init__(self, config: Any, tools: Any, memory: Any, observer: Any) -> None:
+        from ..capabilities.builtins.catalog import BuiltInCatalog
         from ..capabilities.compaction.plugin import CompactionPlugin
         from ..capabilities.memory.plugin import MemoryPlugin
         from ..capabilities.observability.plugin import ObservabilityPlugin
@@ -37,10 +38,12 @@ class CapabilityManager:
         from ..capabilities.tools.plugin import ToolsPlugin
 
         self.config = config
+        catalog = BuiltInCatalog(config)
+        catalog.register_tools(tools)
         self.plugins: dict[str, Any] = {
             "tools": ToolsPlugin(tools),
             "memory": MemoryPlugin(memory),
-            "skills": SkillsPlugin(config.skills.roots),
+            "skills": SkillsPlugin(config.skills.roots, catalog.skills()),
             "compaction": CompactionPlugin(),
             "observability": ObservabilityPlugin(observer),
         }

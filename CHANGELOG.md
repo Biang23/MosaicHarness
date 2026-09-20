@@ -12,6 +12,10 @@
 - Added P0 capability-doctor and tool-execution TDD evidence documents.
 - Added structured INFO/DEBUG/WARNING/ERROR logging for runtime, model factory,
   and tool execution lifecycle events.
+- Added `MosaicTool` and `MosaicSkill` base classes with built-in catalog support.
+- Enabled core tool/skill discovery by default while keeping network category
+  disabled by default.
+- Added built-in deterministic tools and provider-backed `web_search`/`fetch_url`.
 
 ### <span style="color:#d97706">Changed</span>
 

@@ -16,6 +16,7 @@ class ToolRegistry:
 
     def __init__(self) -> None:
         self._tools: dict[str, BaseTool] = {}
+        self._builtin_names: set[str] = set()
         self._version = 0
 
     @property
@@ -26,11 +27,26 @@ class ToolRegistry:
     def names(self) -> tuple[str, ...]:
         return tuple(self._tools)
 
-    def register(self, candidate: ToolLike) -> BaseTool:
+    @property
+    def builtin_names(self) -> tuple[str, ...]:
+        return tuple(name for name in self._tools if name in self._builtin_names)
+
+    def search(self, query: str = "", limit: int = 10) -> tuple[dict[str, str], ...]:
+        lowered = query.casefold().strip()
+        matches = []
+        for tool in self._tools.values():
+            haystack = f"{tool.name} {tool.description}".casefold()
+            if not lowered or lowered in haystack:
+                matches.append({"name": tool.name, "description": tool.description})
+        return tuple(matches[:limit])
+
+    def register(self, candidate: ToolLike, *, builtin: bool = False) -> BaseTool:
         registered = candidate if isinstance(candidate, BaseTool) else langchain_tool(candidate)
         if registered.name in self._tools:
             raise DuplicateToolError(f"tool already registered: {registered.name}")
         self._tools[registered.name] = registered
+        if builtin:
+            self._builtin_names.add(registered.name)
         self._version += 1
         return registered
 

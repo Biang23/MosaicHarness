@@ -1,3 +1,4 @@
+from .capabilities.builtins import MosaicSkill, MosaicTool
 from .capabilities.mcp.client import MCPServerConfig, MCPToolProvider
 from .capabilities.memory.store import MemoryRecord, MosaicMemory
 from .capabilities.observability.langsmith import LangSmithObservability
@@ -9,10 +10,13 @@ from .capabilities.tools.execution import (
 )
 from .capabilities.tools.registry import ToolRegistry
 from .capabilities.tools.result import ToolResult
+from .capabilities.web import SearchProvider, SearchQuery, SearchResponse, SearchResult
 from .config import (
+    BuiltinsConfig,
     CompactionConfig,
     MemoryConfig,
     MosaicConfig,
+    NetworkConfig,
     ObservabilityConfig,
     SkillsConfig,
     ToolsConfig,
@@ -54,6 +58,7 @@ from .models import (
 
 __all__ = [
     "AgentSpec",
+    "BuiltinsConfig",
     "CapabilityCheck",
     "CompactionConfig",
     "DuplicateAgentError",
@@ -81,10 +86,17 @@ __all__ = [
     "MosaicHarness",
     "MosaicHarnessError",
     "MosaicMemory",
+    "MosaicSkill",
+    "MosaicTool",
+    "NetworkConfig",
     "ObservabilityConfig",
     "ProviderRegistry",
     "RunContext",
     "RunResult",
+    "SearchProvider",
+    "SearchQuery",
+    "SearchResponse",
+    "SearchResult",
     "SkillsConfig",
     "ToolCallRecord",
     "ToolExecutionMiddleware",

@@ -3,14 +3,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from .base import MosaicSkill
+
 
 @dataclass(frozen=True, slots=True)
-class SkillManifest:
+class SkillManifest(MosaicSkill):
     name: str
     description: str
     path: Path
     body: str
     metadata: dict[str, str]
+
+    def instructions(self) -> str:
+        return self.body
 
 
 class SkillRegistry:
@@ -18,11 +23,11 @@ class SkillRegistry:
 
     def __init__(self, roots: tuple[str, ...]) -> None:
         self.roots = tuple(Path(root).expanduser() for root in roots)
-        self._skills: dict[str, SkillManifest] = {}
+        self._skills: dict[str, MosaicSkill] = {}
         self.refresh()
 
     @property
-    def skills(self) -> tuple[SkillManifest, ...]:
+    def skills(self) -> tuple[MosaicSkill, ...]:
         return tuple(self._skills.values())
 
     def refresh(self) -> None:
@@ -34,10 +39,13 @@ class SkillRegistry:
                 manifest = _parse_skill(path)
                 self._skills[manifest.name] = manifest
 
-    def get(self, name: str) -> SkillManifest | None:
+    def get(self, name: str) -> MosaicSkill | None:
         return self._skills.get(name)
 
-    def search(self, query: str, limit: int = 5) -> tuple[SkillManifest, ...]:
+    def register(self, skill: MosaicSkill) -> None:
+        self._skills[skill.name] = skill
+
+    def search(self, query: str, limit: int = 5) -> tuple[MosaicSkill, ...]:
         lowered = query.casefold()
         ranked = [
             skill

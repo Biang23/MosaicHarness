@@ -8,6 +8,7 @@ from langchain_core.tools import tool
 
 from mosaic_harness import (
     AgentSpec,
+    BuiltinsConfig,
     CompactionConfig,
     MosaicConfig,
     MosaicMemory,
@@ -38,7 +39,12 @@ def assembly_for(
 
 
 def test_disabled_capabilities_contribute_nothing() -> None:
-    config = MosaicConfig()
+    config = MosaicConfig(
+        enabled_capabilities=(),
+        tools=ToolsConfig(enabled=False),
+        builtins=BuiltinsConfig(tools_enabled=False, skills_enabled=False),
+        skills=SkillsConfig(enabled=False),
+    )
     spec = AgentSpec(name="plain", system_prompt="Base prompt.")
     manager, assembly = assembly_for(config, spec)
 
@@ -53,6 +59,7 @@ def test_tools_capability_adds_metadata_and_only_selected_tools() -> None:
     config = MosaicConfig(
         enabled_capabilities=("tools",),
         tools=ToolsConfig(enabled=True),
+        builtins=BuiltinsConfig(tools_enabled=False, skills_enabled=False),
     )
     spec = AgentSpec(
         name="lookup-agent",
@@ -64,7 +71,7 @@ def test_tools_capability_adds_metadata_and_only_selected_tools() -> None:
 
     contribution = manager.assemble(assembly.spec)
 
-    assert [item.name for item in contribution.tools] == ["lookup"]
+    assert [item.name for item in contribution.tools] == ["lookup", "tool_search"]
     assert "lookup: Look up a value." in contribution.system_prompt
 
 

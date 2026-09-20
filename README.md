@@ -185,6 +185,16 @@ tool calling、structured output、streaming、parallel tool calls 和 reasoning
 enabled_capabilities=None 时继承 MosaicConfig.enabled_capabilities。
 显式传入空元组可以关闭该 Agent 的所有可选能力。
 
+默认情况下 Mosaic 已开启 core Tool/Skill 系统，包括 `tool_search`、
+`skill_search`、`load_skill` 和 deterministic built-in tools。网络、文件和代码
+执行等有外部副作用的类别默认关闭；启用网络内置能力需要显式设置：
+
+~~~bash
+export MOSAIC_NETWORK_ENABLED=true
+~~~
+
+网络类别下的内置 Tool 和 Skill 会共享同一安全配置和 ToolExecutionPolicy。
+
 配置优先级：
 
 ~~~text
@@ -199,6 +209,9 @@ MOSAIC_* 环境变量
 
 ~~~bash
 export MOSAIC_CAPABILITIES=tools,memory,skills
+export MOSAIC_BUILTIN_TOOLS_ENABLED=true
+export MOSAIC_BUILTIN_SKILLS_ENABLED=true
+export MOSAIC_NETWORK_ENABLED=true
 export MOSAIC_SKILL_PATHS=./skills,~/.agents/skills
 export MOSAIC_COMPACTION_ENABLED=true
 export MOSAIC_COMPACTION_TRIGGER_TOKENS=32000
@@ -221,6 +234,16 @@ sdk.tools.register(my_tool)
 
 完整 JSON Schema 不会重复塞入 system prompt，避免上下文浪费和描述漂移。
 如果 Agent 配置了 tool_names 但没有打开 Tools capability，装配会直接失败。
+
+内置 Tool 继承 `MosaicTool`，用户仍可继续注册 LangChain `BaseTool` 或 callable：
+
+~~~python
+from mosaic_harness import MosaicTool
+~~~
+
+默认 core tools 包括 `tool_search`、`current_time`、`calculator` 和
+`json_validate`。开启 `MOSAIC_NETWORK_ENABLED=true` 后，还会自动贡献
+`web_search` 和 `fetch_url`。所有内置 Tool 都经过 ToolExecutionPolicy。
 
 ## MCP Capability
 
@@ -316,6 +339,11 @@ skills/
 启用 Skills 后，插件会扫描 Skill roots，只把 name 和 description 放入
 system prompt，并提供 skill_search 和 load_skill。模型需要时才加载完整
 Skill 内容，这就是 progressive disclosure。
+
+Skill 基类是 `MosaicSkill`。默认 core Skill 工具 `skill_search` 和
+`load_skill` 已开启；网络类别开启后会提供 `web-research`、
+`source-evaluation` 和 `citation-answering` 内置 Skills。已有 `SKILL.md`
+仍然可以通过兼容 adapter 接入。
 
 Skill 中的脚本不会因为被读取就自动获得主机执行权限；执行脚本需要单独的
 Sandbox capability。
@@ -422,7 +450,9 @@ src/mosaic_harness/
 ├── core/                    # contracts, assembly, runtime
 ├── config/                  # typed settings and safe env loading
 └── capabilities/
-    ├── tools/               # Python Tool、metadata、allowlist
+    ├── builtins/            # MosaicTool、MosaicSkill 和 built-in catalog
+    ├── tools/               # Python Tool、metadata、allowlist、execution policy
+    ├── web/                 # SearchProvider、web_search、fetch_url
     ├── mcp/                 # MCP transport/client adapter
     ├── memory/              # Checkpointer、BaseStore、Memory tools
     ├── skills/              # SKILL.md 注册与渐进式加载
