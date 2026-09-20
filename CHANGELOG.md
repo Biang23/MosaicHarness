@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### <span style="color:#1a7f37">Fixed</span>
+
+- Made `MosaicTool.risk_level` a `ClassVar` so built-in tools such as
+  `WebSearchTool` and `FetchUrlTool` can override it. Pydantic 2.13 rejected the
+  previous unannotated overrides with `model-field-overridden` at import time.
+
 ## [0.2.0] - 2026-09-18
 
 ### <span style="color:#1f6feb">Added</span>
@@ -21,6 +29,8 @@
 
 - Updated the chatbot demo to use the native DeepSeek provider adapter.
 - Added the chatbot `/api/doctor` endpoint and web-search execution policy.
+- Updated README and quickstart examples to use `MosaicTool` as the recommended
+  custom Tool definition API.
 
 ### <span style="color:#d1242f">Breaking</span>
 

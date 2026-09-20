@@ -108,29 +108,54 @@ API key 可以显式传入 `api_key`，但更推荐使用 `api_key_env`。Mosaic
 ## 最小示例
 
 ~~~python
-from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
+from typing import Any
 
-from mosaic_harness import AgentSpec, MosaicConfig, MosaicHarness, RunContext, ToolsConfig
+from pydantic import BaseModel, Field
+
+from mosaic_harness import (
+    AgentSpec,
+    BuiltinsConfig,
+    ModelSpec,
+    MosaicConfig,
+    MosaicHarness,
+    MosaicTool,
+    RunContext,
+    ToolExecutionPolicy,
+    ToolResult,
+    ToolsConfig,
+)
 
 
-@tool
-def add(a: int, b: int) -> int:
-    """Add two integers."""
-    return a + b
+class AddArgs(BaseModel):
+    a: int = Field(description="First integer")
+    b: int = Field(description="Second integer")
+
+
+class AddTool(MosaicTool):
+    name: str = "add"
+    description: str = "Add two integers and return the result."
+
+    def _run(self, a: int, b: int, **kwargs: Any) -> ToolResult:
+        del kwargs
+        result = a + b
+        return ToolResult.success(
+            f"Calculated {a} + {b} = {result}",
+            data={"a": a, "b": b, "result": result},
+        )
 
 
 sdk = MosaicHarness(
     config=MosaicConfig(
         enabled_capabilities=("tools",),
         tools=ToolsConfig(enabled=True),
+        builtins=BuiltinsConfig(tools_enabled=False, skills_enabled=False),
     )
 )
-sdk.tools.register(add)
+sdk.tools.register(AddTool(args_schema=AddArgs))
 sdk.define(
     AgentSpec(
         name="calculator",
-        model=ChatOpenAI(model="gpt-4.1-mini"),
+        model=ModelSpec(provider="openai", model="gpt-4.1-mini"),
         system_prompt="Use the arithmetic tool and answer concisely.",
         tool_names=("add",),
     )
@@ -224,8 +249,12 @@ export MOSAIC_LANGSMITH_PROJECT=mosaic-dev
 Tools capability 负责 Python Tool 的注册、allowlist 和 prompt metadata：
 
 ~~~python
-sdk.tools.register(my_tool)
+sdk.tools.register(MyMosaicTool(args_schema=MyArgs))
 ~~~
+
+自定义 Tool 推荐继承 `MosaicTool`，使用 Pydantic `args_schema` 定义参数，
+并返回 `ToolResult`。这会自动接入 ToolExecutionPolicy、tool discovery、
+日志和执行记录。
 
 工具会以两种形式进入 Agent：
 
@@ -240,6 +269,9 @@ sdk.tools.register(my_tool)
 ~~~python
 from mosaic_harness import MosaicTool
 ~~~
+
+`@tool` callable 和 LangChain `BaseTool` 仍然作为兼容 adapter 支持，但不再是
+新 Tool 的推荐定义方式。
 
 默认 core tools 包括 `tool_search`、`current_time`、`calculator` 和
 `json_validate`。开启 `MOSAIC_NETWORK_ENABLED=true` 后，还会自动贡献

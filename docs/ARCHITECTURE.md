@@ -75,10 +75,10 @@ built-in capability aliases; they cannot import arbitrary Python code.
 
 | Capability | Contribution | Default |
 |---|---|---|
-| tools | explicit Python Tool registry and prompt metadata | disabled |
+| tools | MosaicTool registry, discovery, policy and prompt metadata | enabled |
 | mcp | loads MCP tools into the Tools registry | opt-in |
 | memory | LangGraph Checkpointer, BaseStore, memory tools | disabled |
-| skills | SKILL.md catalog, metadata, skill_search/load_skill | disabled |
+| skills | MosaicSkill catalog, SKILL.md adapter, discovery and progressive loading | enabled |
 | compaction | SummarizationMiddleware and ContextEditingMiddleware | disabled |
 | observability | LangSmith run configuration and tracing context | disabled |
 
