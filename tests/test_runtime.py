@@ -487,3 +487,39 @@ def test_doctor_reports_model_capability_mismatch_without_invoking_model() -> No
     assert report.requirements.tool_calling is True
     assert any(check.status == "unsupported" for check in report.checks)
     assert provider.build_count == 0
+
+
+def test_run_config_forwards_agent_recursion_limit() -> None:
+    sdk = MosaicHarness()
+    spec = AgentSpec(name="limited-agent", system_prompt="Answer.", recursion_limit=50)
+
+    config = sdk._run_config(
+        spec,
+        RunContext(user_id="u-1", session_id="s-1"),
+        thread_id="t-1",
+        tags=(),
+        metadata=None,
+    )
+
+    assert config["recursion_limit"] == 50
+    assert config["configurable"]["thread_id"] == "u-1:t-1"
+
+
+def test_run_config_omits_recursion_limit_by_default() -> None:
+    sdk = MosaicHarness()
+    spec = AgentSpec(name="default-agent", system_prompt="Answer.")
+
+    config = sdk._run_config(
+        spec,
+        RunContext(user_id="u-1", session_id="s-1"),
+        thread_id="t-1",
+        tags=(),
+        metadata=None,
+    )
+
+    assert "recursion_limit" not in config
+
+
+def test_agent_spec_rejects_non_positive_recursion_limit() -> None:
+    with pytest.raises(ValueError):
+        AgentSpec(name="bad-limit", system_prompt="Answer.", recursion_limit=0)

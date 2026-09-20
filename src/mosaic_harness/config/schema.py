@@ -33,6 +33,20 @@ class NetworkConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class FilesystemConfig:
+    enabled: bool = False
+    roots: tuple[str, ...] = ()
+    max_read_bytes: int = 1_000_000
+
+
+@dataclass(frozen=True, slots=True)
+class DocumentsConfig:
+    enabled: bool = False
+    max_pages: int = 50
+    max_output_chars: int = 200_000
+
+
+@dataclass(frozen=True, slots=True)
 class BuiltinsConfig:
     tools_enabled: bool = True
     skills_enabled: bool = True
@@ -82,6 +96,8 @@ class MosaicConfig:
     enabled_capabilities: tuple[str, ...] = ("tools", "skills")
     tools: ToolsConfig = field(default_factory=lambda: ToolsConfig(enabled=True))
     network: NetworkConfig = field(default_factory=NetworkConfig)
+    filesystem: FilesystemConfig = field(default_factory=FilesystemConfig)
+    documents: DocumentsConfig = field(default_factory=DocumentsConfig)
     builtins: BuiltinsConfig = field(default_factory=BuiltinsConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
     skills: SkillsConfig = field(default_factory=lambda: SkillsConfig(enabled=True))
@@ -115,6 +131,16 @@ class MosaicConfig:
                 timeout_seconds=float(os.getenv("MOSAIC_NETWORK_TIMEOUT_SECONDS", "10")),
                 max_response_bytes=int(os.getenv("MOSAIC_NETWORK_MAX_RESPONSE_BYTES", "2000000")),
                 allowed_domains=_csv(os.getenv("MOSAIC_NETWORK_ALLOWED_DOMAINS")),
+            ),
+            filesystem=FilesystemConfig(
+                enabled=_bool(os.getenv("MOSAIC_FILESYSTEM_ENABLED")),
+                roots=_csv(os.getenv("MOSAIC_FILESYSTEM_ROOTS")),
+                max_read_bytes=int(os.getenv("MOSAIC_FILESYSTEM_MAX_READ_BYTES", "1000000")),
+            ),
+            documents=DocumentsConfig(
+                enabled=_bool(os.getenv("MOSAIC_DOCUMENTS_ENABLED")),
+                max_pages=int(os.getenv("MOSAIC_DOCUMENTS_MAX_PAGES", "50")),
+                max_output_chars=int(os.getenv("MOSAIC_DOCUMENTS_MAX_OUTPUT_CHARS", "200000")),
             ),
             builtins=BuiltinsConfig(
                 tools_enabled=_bool(os.getenv("MOSAIC_BUILTIN_TOOLS_ENABLED"), default=True),

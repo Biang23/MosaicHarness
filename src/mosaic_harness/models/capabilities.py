@@ -7,6 +7,7 @@ from typing import Literal
 from ..core.models import AgentSpec, ModelCapabilities, ModelInput, ModelSpec
 
 CapabilityStatus = Literal["satisfied", "unsupported", "unknown", "not_required"]
+CategoryStatus = Literal["enabled", "disabled", "misconfigured"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +40,14 @@ class CapabilityCheck:
 
 
 @dataclass(frozen=True, slots=True)
+class CategoryCheck:
+    category: str
+    enabled: bool
+    status: CategoryStatus
+    message: str
+
+
+@dataclass(frozen=True, slots=True)
 class ModelInspection:
     provider: str | None
     model: str | None
@@ -59,6 +68,7 @@ class ModelDoctorReport:
     provider_installed: bool
     credential_env: str | None
     credential_configured: bool
+    category_checks: tuple[CategoryCheck, ...] = field(default_factory=tuple)
     recommendations: tuple[str, ...] = field(default_factory=tuple)
 
     @property
@@ -67,6 +77,7 @@ class ModelDoctorReport:
             self.provider_installed
             and self.credential_configured
             and all(check.status != "unsupported" for check in self.checks)
+            and all(check.status != "misconfigured" for check in self.category_checks)
         )
 
     @property

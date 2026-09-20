@@ -111,6 +111,30 @@ def test_network_category_enables_web_tool_and_skill() -> None:
     )
     report = sdk.doctor("builtins")
     assert report.requirements.tool_calling is True
+    assert {check.category for check in report.category_checks} == {
+        "network",
+        "filesystem",
+        "documents",
+    }
+
+
+def test_doctor_reports_misconfigured_filesystem_category() -> None:
+    sdk = MosaicHarness(
+        config=MosaicConfig(
+            enabled_capabilities=("tools",),
+            tools=ToolsConfig(enabled=True),
+            builtins=BuiltinsConfig(tools_enabled=True, skills_enabled=False),
+            filesystem=__import__("mosaic_harness").FilesystemConfig(enabled=True),
+        )
+    )
+    sdk.define(AgentSpec(name="filesystem-doctor", system_prompt="Use tools.", model="openai:test"))
+
+    report = sdk.doctor("filesystem-doctor")
+
+    filesystem = next(item for item in report.category_checks if item.category == "filesystem")
+    assert filesystem.status == "misconfigured"
+    assert "MOSAIC_FILESYSTEM_ROOTS" in filesystem.message
+    assert report.ok is False
 
 
 @pytest.mark.asyncio

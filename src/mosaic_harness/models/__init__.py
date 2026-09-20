@@ -1,5 +1,6 @@
 from .capabilities import (
     CapabilityCheck,
+    CategoryCheck,
     ModelDoctorReport,
     ModelInspection,
     ModelRequirements,
@@ -9,6 +10,7 @@ from .registry import ModelProvider, ProviderRegistry
 
 __all__ = [
     "CapabilityCheck",
+    "CategoryCheck",
     "ModelDoctorReport",
     "ModelFactory",
     "ModelInspection",

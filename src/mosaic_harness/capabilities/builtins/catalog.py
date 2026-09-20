@@ -8,6 +8,7 @@ from ..tools.registry import ToolRegistry
 from ..web.fetch import FetchUrlTool
 from ..web.providers import DDGSProvider
 from ..web.tool import WebSearchTool
+from .filesystem import document_tools, filesystem_tools
 from .skills import network_skills
 from .tools import deterministic_tools
 
@@ -29,6 +30,16 @@ class BuiltInCatalog:
                     allowed_domains=self.config.network.allowed_domains,
                 )
             )
+        if self.config.filesystem.enabled:
+            tools.extend(filesystem_tools(self.config.filesystem.roots))
+            if self.config.documents.enabled:
+                tools.extend(
+                    document_tools(
+                        self.config.filesystem.roots,
+                        max_pages=self.config.documents.max_pages,
+                        max_output_chars=self.config.documents.max_output_chars,
+                    )
+                )
         return tuple(tools)
 
     def skills(self) -> tuple[MosaicSkill, ...]:

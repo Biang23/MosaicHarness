@@ -30,6 +30,7 @@ def test_default_configuration_enables_core_tool_and_skill_systems() -> None:
     assert config.builtins.tools_enabled is True
     assert config.builtins.skills_enabled is True
     assert config.network.enabled is False
+    assert config.filesystem.enabled is False
 
 
 def test_config_reads_builtin_category_switches(monkeypatch: pytest.MonkeyPatch) -> None:

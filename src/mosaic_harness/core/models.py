@@ -109,6 +109,7 @@ class AgentSpec:
     response_format: Any | None = None
     tags: tuple[str, ...] = ()
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    recursion_limit: int | None = None
 
     def __post_init__(self) -> None:
         if not _AGENT_NAME.fullmatch(self.name):
@@ -122,6 +123,8 @@ class AgentSpec:
         object.__setattr__(self, "tool_names", tuple(self.tool_names))
         object.__setattr__(self, "tags", tuple(self.tags))
         object.__setattr__(self, "metadata", dict(self.metadata))
+        if self.recursion_limit is not None and self.recursion_limit < 1:
+            raise InvalidAgentSpecError("recursion_limit must be positive")
 
 
 @dataclass(frozen=True, slots=True)

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mosaic-harness"
-version = "0.2.0"
+version = "0.3.0"
 description = "A cohesive Python agent harness SDK built on LangChain and LangGraph."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,6 +26,10 @@ ollama = ["langchain-ollama>=1.0,<2.0"]
 deepseek = ["langchain-deepseek>=1.0,<2.0"]
 kimi = ["langchain-moonshot>=0.1,<1.0"]
 qwen = ["langchain-qwq>=0.1,<1.0"]
+documents = [
+  "pypdf>=5.0,<7.0",
+  "python-docx>=1.1,<2.0",
+]
 models = [
   "langchain-openai>=1.0,<2.0",
   "langchain-anthropic>=1.0,<2.0",

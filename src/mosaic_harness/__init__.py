@@ -14,6 +14,8 @@ from .capabilities.web import SearchProvider, SearchQuery, SearchResponse, Searc
 from .config import (
     BuiltinsConfig,
     CompactionConfig,
+    DocumentsConfig,
+    FilesystemConfig,
     MemoryConfig,
     MosaicConfig,
     NetworkConfig,
@@ -48,6 +50,7 @@ from .core.models import (
 from .core.runtime import MosaicHarness
 from .models import (
     CapabilityCheck,
+    CategoryCheck,
     ModelDoctorReport,
     ModelFactory,
     ModelInspection,
@@ -60,9 +63,12 @@ __all__ = [
     "AgentSpec",
     "BuiltinsConfig",
     "CapabilityCheck",
+    "CategoryCheck",
     "CompactionConfig",
+    "DocumentsConfig",
     "DuplicateAgentError",
     "DuplicateToolError",
+    "FilesystemConfig",
     "HarnessEvent",
     "InvalidAgentSpecError",
     "InvalidMCPConfigError",

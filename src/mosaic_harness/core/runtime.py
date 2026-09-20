@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import AsyncIterator, Mapping, Sequence
+from importlib.util import find_spec
 from typing import Any
 from uuid import uuid4
 
@@ -25,6 +26,7 @@ from ..models import ModelFactory
 from ..models.capabilities import (
     CapabilityCheck,
     CapabilityStatus,
+    CategoryCheck,
     ModelDoctorReport,
     ModelRequirements,
 )
@@ -140,6 +142,10 @@ class MosaicHarness:
                     f"Use a model that supports {check.name} or disable the "
                     "corresponding Agent requirement."
                 )
+        category_checks = _category_checks(self.config)
+        for category_check in category_checks:
+            if category_check.status == "misconfigured":
+                recommendations.append(category_check.message)
         return ModelDoctorReport(
             agent_name=spec.name,
             model_provider=inspection.provider,
@@ -150,6 +156,7 @@ class MosaicHarness:
             provider_installed=inspection.provider_installed,
             credential_env=inspection.credential_env,
             credential_configured=inspection.credential_configured,
+            category_checks=category_checks,
             recommendations=tuple(recommendations),
         )
 
@@ -450,6 +457,8 @@ class MosaicHarness:
             metadata=metadata,
         )
         config["configurable"] = {"thread_id": f"{context.user_id}:{thread_id}"}
+        if spec.recursion_limit is not None:
+            config["recursion_limit"] = spec.recursion_limit
         return config
 
     @staticmethod
@@ -586,6 +595,78 @@ def _capability_check(name: str, required: bool, supported: bool | None) -> Capa
         status=status,
         message=message,
     )
+
+
+def _category_checks(config: MosaicConfig) -> tuple[CategoryCheck, ...]:
+    checks: list[CategoryCheck] = []
+    if config.network.enabled:
+        provider_available = config.network.provider != "ddgs" or find_spec("ddgs") is not None
+        if provider_available:
+            checks.append(
+                CategoryCheck(
+                    category="network",
+                    enabled=True,
+                    status="enabled",
+                    message=(
+                        f"network category is enabled with provider '{config.network.provider}'."
+                    ),
+                )
+            )
+        else:
+            checks.append(
+                CategoryCheck(
+                    category="network",
+                    enabled=True,
+                    status="misconfigured",
+                    message="Install the 'ddgs' package or configure another network provider.",
+                )
+            )
+    else:
+        checks.append(
+            CategoryCheck(
+                category="network",
+                enabled=False,
+                status="disabled",
+                message="network category is disabled; network built-ins are unavailable.",
+            )
+        )
+
+    filesystem_ready = config.filesystem.enabled and bool(config.filesystem.roots)
+    checks.append(
+        CategoryCheck(
+            category="filesystem",
+            enabled=config.filesystem.enabled,
+            status=("enabled" if filesystem_ready else "misconfigured")
+            if config.filesystem.enabled
+            else "disabled",
+            message=(
+                "filesystem category is enabled with configured roots."
+                if filesystem_ready
+                else "Configure MOSAIC_FILESYSTEM_ROOTS before enabling filesystem tools."
+                if config.filesystem.enabled
+                else "filesystem category is disabled; filesystem built-ins are unavailable."
+            ),
+        )
+    )
+
+    documents_ready = config.documents.enabled and filesystem_ready
+    checks.append(
+        CategoryCheck(
+            category="documents",
+            enabled=config.documents.enabled,
+            status=("enabled" if documents_ready else "misconfigured")
+            if config.documents.enabled
+            else "disabled",
+            message=(
+                "documents category is enabled with filesystem roots."
+                if documents_ready
+                else "Enable filesystem and configure roots before enabling document tools."
+                if config.documents.enabled
+                else "documents category is disabled; document built-ins are unavailable."
+            ),
+        )
+    )
+    return tuple(checks)
 
 
 def _normalize_event(

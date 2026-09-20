@@ -1,6 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.0] - 2026-09-20
+
+### <span style="color:#1f6feb">Added</span>
+
+- Added `AgentSpec.recursion_limit`, forwarded to LangGraph as the run's
+  `recursion_limit`, so research agents can exceed the default 25 graph steps.
+- Added a disabled-by-default filesystem category with root-scoped `list_files`
+  `read_file`, `extract_csv_schema`, and `search_document` built-in Tools.
+- Added optional document extraction Tools for PDF and DOCX files.
+- Added `doctor.category_checks` for actionable network, filesystem, and documents
+  category diagnostics.
 
 ### <span style="color:#1a7f37">Fixed</span>
 

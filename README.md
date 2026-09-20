@@ -190,6 +190,7 @@ AgentSpec(
     enabled_capabilities=("tools", "skills", "memory", "compaction"),
     memory_namespace="research",
     tags=("research",),
+    recursion_limit=50,
 )
 ~~~
 
@@ -207,8 +208,15 @@ tool calling、structured output、streaming、parallel tool calls 和 reasoning
 等能力是否满足当前 Agent。`unknown` 能力会被标记为需要 live probe，不会被
 静默判断为支持。
 
+`report.category_checks` 还会诊断 network、filesystem 和 documents 类别是否关闭、
+已启用或配置不完整，例如缺少 `MOSAIC_FILESYSTEM_ROOTS`，或 documents 未同时启用
+filesystem。
+
 enabled_capabilities=None 时继承 MosaicConfig.enabled_capabilities。
 显式传入空元组可以关闭该 Agent 的所有可选能力。
+
+`AgentSpec.recursion_limit` 会作为 LangGraph 的 `recursion_limit` 传入本次
+run，用于限制单次调用的最大图步数；未设置时使用 LangGraph 默认值。
 
 默认情况下 Mosaic 已开启 core Tool/Skill 系统，包括 `tool_search`、
 `skill_search`、`load_skill` 和 deterministic built-in tools。网络、文件和代码
@@ -216,9 +224,17 @@ enabled_capabilities=None 时继承 MosaicConfig.enabled_capabilities。
 
 ~~~bash
 export MOSAIC_NETWORK_ENABLED=true
+export MOSAIC_FILESYSTEM_ENABLED=true
+export MOSAIC_FILESYSTEM_ROOTS=./workspace
+export MOSAIC_DOCUMENTS_ENABLED=true
 ~~~
 
 网络类别下的内置 Tool 和 Skill 会共享同一安全配置和 ToolExecutionPolicy。
+文件类别默认关闭；开启后只允许访问 `MOSAIC_FILESYSTEM_ROOTS` 中的路径，提供
+`list_files`、`read_file`、`extract_csv_schema` 和 `search_document`，不允许通过读取
+Skill 获得主机执行权限。
+启用 documents 后还可以按 optional extra 使用 `extract_pdf_text` 和
+`extract_docx_text`。
 
 配置优先级：
 

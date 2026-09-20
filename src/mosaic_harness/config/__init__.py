@@ -1,6 +1,8 @@
 from .schema import (
     BuiltinsConfig,
     CompactionConfig,
+    DocumentsConfig,
+    FilesystemConfig,
     MemoryConfig,
     MosaicConfig,
     NetworkConfig,
@@ -12,6 +14,8 @@ from .schema import (
 __all__ = [
     "BuiltinsConfig",
     "CompactionConfig",
+    "DocumentsConfig",
+    "FilesystemConfig",
     "MemoryConfig",
     "MosaicConfig",
     "NetworkConfig",
