@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 from ...core.plugin import CapabilityContribution
 from ..builtins.base import MosaicTool
+from .action_space import select_tools
 
 
 class ToolsPlugin:
@@ -19,11 +20,35 @@ class ToolsPlugin:
         config = assembly.config.tools
         if not config.enabled:
             return CapabilityContribution()
-        names = tuple(dict.fromkeys((*self.registry.builtin_names, *assembly.spec.tool_names)))
+        action_space_config = assembly.config.action_space
+        selection = select_tools(
+            self.registry,
+            requested=assembly.spec.tool_names,
+            config=action_space_config,
+            metadata=dict(assembly.spec.metadata),
+        )
+        names = selection.selected
         tools = self.registry.resolve(names)
         tools_with_discovery = (*tools, ToolSearchTool(registry=self.registry))
         metadata = _tool_metadata(tools_with_discovery) if config.include_metadata_in_prompt else ()
-        return CapabilityContribution(tools=tools_with_discovery, system_prompt_blocks=metadata)
+        diagnostics = (
+            (
+                {
+                    "type": "action_space.selected",
+                    "selected": selection.selected,
+                    "candidates": selection.candidates,
+                    "query": selection.query,
+                    "reason": selection.reason,
+                },
+            )
+            if action_space_config.enabled
+            else ()
+        )
+        return CapabilityContribution(
+            tools=tools_with_discovery,
+            system_prompt_blocks=metadata,
+            diagnostics=diagnostics,
+        )
 
 
 def _tool_metadata(tools: tuple[Any, ...]) -> tuple[str, ...]:

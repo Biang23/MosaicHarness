@@ -85,6 +85,18 @@ def test_default_agent_assembly_exposes_tool_and_skill_discovery() -> None:
     assert {"tool_search", "skill_search", "load_skill"}.issubset(tool_names)
 
 
+def test_custom_mosaic_skill_can_be_registered_and_loaded() -> None:
+    sdk = MosaicHarness()
+    sdk.register_skill(ExampleSkill())
+    spec = AgentSpec(name="custom-skill", system_prompt="Use skills.", model="openai:test")
+    sdk.define(spec)
+
+    assembly = sdk.capabilities.assemble(spec)
+    load_skill = next(tool for tool in assembly.tools if tool.name == "load_skill")
+
+    assert "Use example_tool" in load_skill.invoke({"name": "example-skill"})
+
+
 def test_network_category_enables_web_tool_and_skill() -> None:
     config = MosaicConfig(
         enabled_capabilities=("tools", "skills"),

@@ -15,6 +15,7 @@ from mosaic_harness import (
     SkillsConfig,
     ToolsConfig,
 )
+from mosaic_harness.capabilities.builtins.base import MosaicTool
 from mosaic_harness.capabilities.tools import ToolRegistry
 from mosaic_harness.core.manager import CapabilityManager
 
@@ -120,3 +121,16 @@ def test_compaction_capability_contributes_langchain_middleware() -> None:
         "SummarizationMiddleware",
         "ContextEditingMiddleware",
     ]
+
+
+def test_memory_builtin_tools_use_mosaic_tool_base_class() -> None:
+    config = MosaicConfig(
+        enabled_capabilities=("memory",),
+        memory=__import__("mosaic_harness").MemoryConfig(enabled=True),
+    )
+    spec = AgentSpec(name="memory-agent", system_prompt="Remember.", model="openai:test")
+    manager, assembly = assembly_for(config, spec)
+
+    contribution = manager.assemble(assembly.spec)
+
+    assert all(isinstance(item, MosaicTool) for item in contribution.tools)

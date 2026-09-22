@@ -96,6 +96,37 @@ sdk.define(AgentSpec(name="assistant", model=claude_model, system_prompt="Answer
 兼容性矩阵为准。Anthropic 使用自己的 Messages integration，Ollama 使用原生
 Ollama integration，不会被强制转换成 OpenAI 协议。
 
+需要在多个候选模型之间按 Agent 能力选择时，可以使用离线 `ModelRouter`：
+
+~~~python
+decision = ModelRouter().select(
+    [openai_model, deepseek_model, local_model],
+    requirements=ModelRequirements(tool_calling=True),
+)
+selected_model = decision.selected
+~~~
+
+Router 只检查 capability profile、provider 安装状态和凭证配置，不发起模型请求，
+并返回被拒绝候选的原因。
+外部 health checker 可以通过 `health={"provider:model": False}` 排除不健康候选；
+Router 本身不会发起健康探测。
+
+如果已有 `AgentSpec`，也可以直接使用 `select_for_agent(candidates, spec, tool_count)`，
+由 SDK 根据 Tool 数量、response format 和 `requires_*` metadata 推导 requirements。
+也可以通过 `sdk.route_model(candidates, spec)` 在定义 Agent 前预览同一决策和拒绝原因。
+
+也可以直接在 AgentSpec 中声明 `model_candidates`，Mosaic 会在 `define()` 时完成离线
+选择：
+
+~~~python
+spec = AgentSpec(
+    name="support",
+    system_prompt="Help the user.",
+    model_candidates=(openai_model, deepseek_model, local_model),
+)
+sdk.define(spec)
+~~~
+
 API key 可以显式传入 `api_key`，但更推荐使用 `api_key_env`。Mosaic 不会把 key
 写入模型配置的 `repr`、运行 metadata 或事件数据。
 
@@ -258,6 +289,8 @@ export MOSAIC_COMPACTION_ENABLED=true
 export MOSAIC_COMPACTION_TRIGGER_TOKENS=32000
 export MOSAIC_LANGSMITH_ENABLED=true
 export MOSAIC_LANGSMITH_PROJECT=mosaic-dev
+export MOSAIC_ACTION_SPACE_ENABLED=true
+export MOSAIC_ACTION_SPACE_MAX_TOOLS=12
 ~~~
 
 ## Tools Capability
@@ -279,6 +312,47 @@ sdk.tools.register(MyMosaicTool(args_schema=MyArgs))
 
 完整 JSON Schema 不会重复塞入 system prompt，避免上下文浪费和描述漂移。
 如果 Agent 配置了 tool_names 但没有打开 Tools capability，装配会直接失败。
+
+当 `MOSAIC_ACTION_SPACE_ENABLED=true` 时，可以在 `AgentSpec.metadata` 中设置
+`tool_query`、`allowed_tool_names` 和 `denied_tool_names`。Mosaic 会按工具名称/描述
+做确定性相关性排序，只向当前 Agent 暴露有限 Tool；显式 `tool_names` 优先保留。
+筛选结果会写入 Run Journal 的 `action_space.selected` 事件。
+
+对于需要更严格副作用控制的服务 Agent，可以注入 `SecurityPolicy`：
+
+~~~python
+from mosaic_harness import MosaicHarness, SecurityPolicy
+
+sdk = MosaicHarness(
+    security_policy=SecurityPolicy(
+        network="allowlist",
+        allowlisted_tools=("web_search",),
+        approvals=("network:web_search",),
+    )
+)
+~~~
+
+策略在 Tool 执行前生效，支持 `deny`、`allowlist`、`unrestricted` 和 approval；
+被拒绝的调用不会进入 Tool 实现，并会产生 `PolicyDenied` 执行记录。
+
+需要接入业务审批系统时，可以注入 `ApprovalService`。只有返回 approved 的请求才会
+继续进入 Tool：
+
+~~~python
+class MyApprovalService:
+    def approve(self, request):
+        return ApprovalDecision(approved=check_user_permission(request))
+
+
+sdk = MosaicHarness(
+    security_policy=SecurityPolicy(
+        network="allowlist",
+        allowlisted_tools=("payment_action",),
+        approvals=("network:payment_action",),
+    ),
+    approval_service=MyApprovalService(),
+)
+~~~
 
 内置 Tool 继承 `MosaicTool`，用户仍可继续注册 LangChain `BaseTool` 或 callable：
 
@@ -349,6 +423,10 @@ config = MosaicConfig(
 
 默认提供 memory_write、memory_read、memory_search。
 
+需要治理长期记忆时，可以使用 `MosaicMemory.admit()` 写入带来源、置信度、过期时间
+和敏感级别的记录。`user_explicit` 事实优先于 `model_inferred`，过期和 `restricted`
+记忆不会进入普通 `governed_search`；旧的 `put/get/search` API 保持兼容。
+
 长期记忆 namespace 为：
 
 ~~~text
@@ -393,6 +471,15 @@ Skill 基类是 `MosaicSkill`。默认 core Skill 工具 `skill_search` 和
 `source-evaluation` 和 `citation-answering` 内置 Skills。已有 `SKILL.md`
 仍然可以通过兼容 adapter 接入。
 
+Python Skill 可以直接注册到 Harness：
+
+~~~python
+sdk.register_skill(MyDomainSkill())
+~~~
+
+注册后的 Skill 会通过同一套 `skill_search`/`load_skill` progressive-disclosure 流程
+提供给 Agent。
+
 Skill 中的脚本不会因为被读取就自动获得主机执行权限；执行脚本需要单独的
 Sandbox capability。
 
@@ -416,6 +503,19 @@ config = MosaicConfig(
 
 内部使用 SummarizationMiddleware 和 ContextEditingMiddleware。摘要属于当前
 Thread 的短期工作状态，不会自动写入长期 Memory。
+
+如果服务入口或自定义编排需要在进入模型前做确定性窗口控制，可以使用
+`ContextManager`。它不依赖具体 tokenizer，会保留 system message 和最近消息，并
+返回被丢弃数量及字符/token 估算：
+
+~~~python
+from mosaic_harness import ContextBudget, ContextManager
+
+selection = ContextManager(
+    ContextBudget(max_chars=100_000, reserve_chars=10_000, keep_recent_messages=20)
+).select(messages)
+messages_for_model = selection.messages
+~~~
 
 ## Agent Loop 与事件
 
@@ -449,6 +549,146 @@ async for event in sdk.astream_events(
 
 事件类型包括 run.started、model.started、model.completed、model.delta、
 tool.started、tool.completed、tool.failed、run.completed 和 run.failed。
+
+Mosaic 也提供可注入的 Run Journal。默认使用内存 journal；服务端需要保留运行事件时
+可以使用 JSONL adapter：
+
+~~~python
+from mosaic_harness import JsonlRunJournal, MosaicHarness
+
+sdk = MosaicHarness(journal=JsonlRunJournal("./var/mosaic-runs.jsonl"))
+result = sdk.invoke(...)
+print(result.run_id)
+~~~
+
+`invoke`、`ainvoke` 会记录 run 生命周期；`astream_events` 会记录全部已归一化事件。
+流式子事件通过 `parent_run_id` 关联到根 run，便于一次查询完整执行链。Journal 只接收
+SDK 事件，不会额外记录同步调用的 prompt 或最终输出。
+
+`JsonlRunJournal` 默认使用 `SecretScrubber`，会在持久化前脱敏常见的 token、API key、
+password、authorization 和 Bearer 值；可以通过 `scrubber=` 注入自定义脱敏策略。
+
+单进程服务也可以使用 SQLite Journal 获得跨进程重启的本地持久化：
+
+~~~python
+from mosaic_harness import SQLiteRunJournal
+
+sdk = MosaicHarness(journal=SQLiteRunJournal("./var/mosaic-runs.sqlite3"))
+~~~
+
+服务退出时调用 `sdk.close()` 释放可关闭的 Journal、连接和其他持久化资源。
+也可以使用 `with MosaicHarness(...)` 或 `async with MosaicHarness(...)` 自动释放资源。
+
+可以从 Journal 生成服务运营摘要：
+
+~~~python
+stats = sdk.analytics(result.run_id)
+print(stats.tool_calls, stats.tool_failures, stats.duration_ms)
+~~~
+
+摘要包含运行状态、耗时、事件数、Tool 调用数、失败数、阻断数和 retry 次数。
+如果 provider 返回 usage metadata，摘要还会包含 `input_tokens`、`output_tokens` 和
+`total_tokens`；不会把模型输出文本写入 usage 统计。
+
+成本估算不内置 provider 价格表，使用方可以注入当前有效的价格：
+
+~~~python
+from mosaic_harness import TokenPricing
+
+cost = stats.estimated_cost(TokenPricing(input_per_million=2.0, output_per_million=4.0))
+~~~
+
+已记录的运行可以在不解析模型、不执行 Tool 的情况下做 recorded replay：
+
+~~~python
+replay = sdk.replay(result.run_id, mode="recorded")
+assert replay.status == "completed"
+for event in replay.events:
+    print(event.type)
+~~~
+
+Mosaic 还提供离线 Evaluation Harness，可以从 journal 事件生成 Dataset Case，分别
+评估 Tool selection、Tool arguments 和最终回答，并设置 release gate：
+
+~~~python
+case = sdk.dataset.from_run(
+    result.run_id,
+    expected={
+        "tools": ("web_search",),
+        "tool_arguments": ({"query": "mosaic"},),
+        "final_answer": "Mosaic",
+    },
+    result=result,
+)
+report = sdk.evaluate(
+    Dataset("search-regression", (case,)),
+    [ToolSelectionEvaluator(), ToolArgumentsEvaluator(), FinalAnswerEvaluator(mode="contains")],
+    release_gate=1.0,
+)
+assert report.release_gate_passed
+~~~
+
+评测只消费已记录的运行数据，不会重新调用模型或 Tool。
+
+对于已记录的失败 Tool，可以只重试该 Tool，不重新运行整个 Agent：
+
+~~~python
+retry = sdk.retry_tool(result.run_id, failed_tool_call_id)
+assert retry.status == "success"
+~~~
+
+Retry 会复用 ToolExecutionPolicy、SecurityPolicy 和 ApprovalService；不存在于当前
+Journal 的调用不能被重试。
+
+如果前端使用 AG-UI，可以直接消费 SDK 的协议事件，不需要把 SDK 绑定到某个
+Web 框架：
+
+~~~python
+from mosaic_harness import harness_agui_sse
+
+async for frame in harness_agui_sse(
+    sdk,
+    "calculator",
+    "What is 19 + 23?",
+    context=context,
+    thread_id="thread-1",
+):
+    yield frame  # FastAPI StreamingResponse / Starlette StreamingResponse
+~~~
+
+`harness_agui_events` 返回 JSON-safe 的 `AGUIEvent`；`harness_agui_sse` 返回
+`data: {...}` SSE frame。事件覆盖 `RUN_STARTED`、文本消息生命周期、工具调用
+生命周期、`RUN_FINISHED` 和 `RUN_ERROR`。SDK 不强制安装 AG-UI 或 Web 框架依赖。
+
+如果需要直接挂载到 ASGI server，可以使用无额外依赖的 `MosaicAGUIApp`：
+
+~~~python
+from mosaic_harness import MosaicAGUIApp
+
+app = MosaicAGUIApp(sdk, agent_name="calculator")
+~~~
+
+它默认处理 `POST /runs`，请求包含 `prompt` 或 `messages`、`threadId`、`userId`，
+响应为 AG-UI SSE 流，可直接交给 FastAPI、Starlette 或其他 ASGI server。
+可以通过 `max_body_bytes` 设置请求体上限，默认值为 1 MiB。
+也支持 `POST /agents/{name}/runs`，让前端按 Agent Manifest 选择具体 Agent。
+浏览器前端需要跨域时，显式传入 `cors_origins`；默认不添加 CORS headers。
+Supervisor/子 Agent 场景可以额外传入 `parentRunId`，让新 run 继承父子 Journal 关联。
+
+同一个 adapter 还提供 `GET /health` 和 `GET /doctor`，分别用于 readiness 检查和
+无模型请求的 provider/capability 诊断。
+`GET /agents` 返回所有已注册 Agent 的 manifest，便于前端选择器和管理后台发现能力。
+还支持 `GET /agents/{name}` 查看单个 manifest，以及 `GET /agents/{name}/doctor` 查看
+指定 Agent 的 capability/provider 诊断。
+`GET /runs/{run_id}/analytics` 返回指定运行的状态、耗时、Tool 和 token 指标。
+`GET /runs/{run_id}/events` 返回已记录的 JSON-safe 事件，可用于 SSE 断线后的前端恢复。
+
+服务端管理界面可以通过 `sdk.manifest(agent_name)` 或 `sdk.manifests()` 获取只读
+Agent Manifest，包括描述、模型标识、启用 capability 和当前 Tool 列表；该操作不会
+构建模型或发起外部请求。
+
+多 Agent 场景可以使用 `delegate/adelegate` 执行子 Agent，并通过 `parent_run_id`
+把父子执行链关联到同一个 Journal 查询树中。
 
 ## LangSmith Observability
 

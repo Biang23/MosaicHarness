@@ -39,6 +39,12 @@ class SkillsPlugin:
             system_prompt_blocks=("\n".join(metadata),),
         )
 
+    def register(self, skill: MosaicSkill) -> None:
+        if self._registry is None:
+            self._builtin_skills = (*self._builtin_skills, skill)
+            return
+        self._registry.register(skill)
+
 
 class SkillSearchArgs(BaseModel):
     query: str = Field(min_length=1, max_length=500)

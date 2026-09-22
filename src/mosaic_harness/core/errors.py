@@ -30,6 +30,10 @@ class UnknownModelProviderError(MosaicHarnessError, ValueError):
     """Model provider is not registered."""
 
 
+class NoCompatibleModelError(MosaicHarnessError, ValueError):
+    """No candidate model satisfies the requested capabilities."""
+
+
 class InvalidModelSpecError(MosaicHarnessError, ValueError):
     """Invalid declarative model configuration."""
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -14,6 +15,7 @@ class AgentAssembly:
     tools: tuple[Any, ...]
     middleware: tuple[Any, ...]
     enabled_capabilities: tuple[str, ...]
+    diagnostics: tuple[Mapping[str, Any], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,6 +81,9 @@ class CapabilityManager:
     def validate(self, spec: AgentSpec) -> None:
         self.enabled_names(spec)
 
+    def register_skill(self, skill: Any) -> None:
+        self.plugins["skills"].register(skill)
+
     def assemble(
         self,
         spec: AgentSpec,
@@ -103,6 +108,11 @@ class CapabilityManager:
                 middleware for item in contributions for middleware in item.middleware
             ),
             enabled_capabilities=names,
+            diagnostics=tuple(
+                diagnostic
+                for contribution in contributions
+                for diagnostic in contribution.diagnostics
+            ),
         )
 
 

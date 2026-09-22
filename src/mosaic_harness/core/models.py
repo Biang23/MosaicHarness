@@ -102,6 +102,7 @@ class AgentSpec:
     name: str
     system_prompt: str
     model: ModelInput | None = None
+    model_candidates: tuple[ModelInput, ...] = ()
     description: str = ""
     tool_names: tuple[str, ...] = ()
     enabled_capabilities: tuple[str, ...] | None = None
@@ -121,10 +122,20 @@ class AgentSpec:
         elif not self.memory_namespace.strip():
             raise InvalidAgentSpecError("memory_namespace must not be empty")
         object.__setattr__(self, "tool_names", tuple(self.tool_names))
+        object.__setattr__(self, "model_candidates", tuple(self.model_candidates))
         object.__setattr__(self, "tags", tuple(self.tags))
         object.__setattr__(self, "metadata", dict(self.metadata))
         if self.recursion_limit is not None and self.recursion_limit < 1:
             raise InvalidAgentSpecError("recursion_limit must be positive")
+
+
+@dataclass(frozen=True, slots=True)
+class AgentManifest:
+    name: str
+    description: str
+    model: str | None
+    enabled_capabilities: tuple[str, ...]
+    tools: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,6 +161,7 @@ class RunResult:
     thread_id: str
     output_text: str
     messages: tuple[MessageRecord, ...]
+    run_id: str = ""
     structured_response: Any | None = None
     model_provider: str | None = None
     model_name: str | None = None
@@ -164,4 +176,5 @@ class HarnessEvent:
     thread_id: str
     run_id: str
     data: Mapping[str, Any] = field(default_factory=dict)
+    parent_run_id: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))

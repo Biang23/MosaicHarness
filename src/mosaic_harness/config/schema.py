@@ -24,6 +24,12 @@ class ToolsConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class ActionSpaceConfig:
+    enabled: bool = False
+    max_tools: int = 12
+
+
+@dataclass(frozen=True, slots=True)
 class NetworkConfig:
     enabled: bool = False
     provider: str = "ddgs"
@@ -95,6 +101,7 @@ class MosaicConfig:
 
     enabled_capabilities: tuple[str, ...] = ("tools", "skills")
     tools: ToolsConfig = field(default_factory=lambda: ToolsConfig(enabled=True))
+    action_space: ActionSpaceConfig = field(default_factory=ActionSpaceConfig)
     network: NetworkConfig = field(default_factory=NetworkConfig)
     filesystem: FilesystemConfig = field(default_factory=FilesystemConfig)
     documents: DocumentsConfig = field(default_factory=DocumentsConfig)
@@ -124,6 +131,10 @@ class MosaicConfig:
             enabled_capabilities=capabilities,
             tools=ToolsConfig(
                 enabled="tools" in capabilities or _bool(os.getenv("MOSAIC_TOOLS_ENABLED"))
+            ),
+            action_space=ActionSpaceConfig(
+                enabled=_bool(os.getenv("MOSAIC_ACTION_SPACE_ENABLED")),
+                max_tools=int(os.getenv("MOSAIC_ACTION_SPACE_MAX_TOOLS", "12")),
             ),
             network=NetworkConfig(
                 enabled=_bool(os.getenv("MOSAIC_NETWORK_ENABLED")),

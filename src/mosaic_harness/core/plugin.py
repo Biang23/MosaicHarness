@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -12,6 +12,7 @@ class CapabilityContribution:
     tools: tuple[BaseTool, ...] = ()
     middleware: tuple[Any, ...] = ()
     system_prompt_blocks: tuple[str, ...] = ()
+    diagnostics: tuple[Mapping[str, Any], ...] = ()
 
 
 class CapabilityPlugin(Protocol):

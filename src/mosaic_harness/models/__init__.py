@@ -7,6 +7,7 @@ from .capabilities import (
 )
 from .factory import ModelFactory
 from .registry import ModelProvider, ProviderRegistry
+from .router import ModelRouter, ModelRoutingDecision
 
 __all__ = [
     "CapabilityCheck",
@@ -16,5 +17,7 @@ __all__ = [
     "ModelInspection",
     "ModelProvider",
     "ModelRequirements",
+    "ModelRouter",
+    "ModelRoutingDecision",
     "ProviderRegistry",
 ]

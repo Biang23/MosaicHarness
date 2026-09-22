@@ -1,4 +1,5 @@
 from .schema import (
+    ActionSpaceConfig,
     BuiltinsConfig,
     CompactionConfig,
     DocumentsConfig,
@@ -12,6 +13,7 @@ from .schema import (
 )
 
 __all__ = [
+    "ActionSpaceConfig",
     "BuiltinsConfig",
     "CompactionConfig",
     "DocumentsConfig",

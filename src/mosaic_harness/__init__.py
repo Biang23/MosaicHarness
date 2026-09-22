@@ -1,7 +1,22 @@
+from .capabilities.agui import AGUIEvent, harness_agui_events, harness_agui_sse
+from .capabilities.agui_server import MosaicAGUIApp
 from .capabilities.builtins import MosaicSkill, MosaicTool
+from .capabilities.context import ContextBudget, ContextManager, ContextSelection
 from .capabilities.mcp.client import MCPServerConfig, MCPToolProvider
-from .capabilities.memory.store import MemoryRecord, MosaicMemory
+from .capabilities.memory.store import (
+    GovernedMemoryRecord,
+    MemoryAdmission,
+    MemoryRecord,
+    MosaicMemory,
+)
 from .capabilities.observability.langsmith import LangSmithObservability
+from .capabilities.security import (
+    ApprovalDecision,
+    ApprovalRequest,
+    ApprovalService,
+    SecurityPolicy,
+    SecurityPolicyDecision,
+)
 from .capabilities.tools.execution import (
     ToolExecutionMiddleware,
     ToolExecutionPolicy,
@@ -12,6 +27,7 @@ from .capabilities.tools.registry import ToolRegistry
 from .capabilities.tools.result import ToolResult
 from .capabilities.web import SearchProvider, SearchQuery, SearchResponse, SearchResult
 from .config import (
+    ActionSpaceConfig,
     BuiltinsConfig,
     CompactionConfig,
     DocumentsConfig,
@@ -23,6 +39,7 @@ from .config import (
     SkillsConfig,
     ToolsConfig,
 )
+from .core.analytics import RunAnalytics, TokenPricing
 from .core.errors import (
     DuplicateAgentError,
     DuplicateToolError,
@@ -31,12 +48,21 @@ from .core.errors import (
     InvalidModelSpecError,
     MissingOptionalDependencyError,
     MosaicHarnessError,
+    NoCompatibleModelError,
     UnknownAgentError,
     UnknownModelProviderError,
     UnknownToolError,
     UnsupportedModelCapabilityError,
 )
+from .core.journal import (
+    InMemoryRunJournal,
+    JsonlRunJournal,
+    RunJournal,
+    SecretScrubber,
+    SQLiteRunJournal,
+)
 from .core.models import (
+    AgentManifest,
     AgentSpec,
     HarnessEvent,
     MessageRecord,
@@ -47,7 +73,20 @@ from .core.models import (
     RunResult,
     ToolCallRecord,
 )
+from .core.replay import ReplayResult
+from .core.retry import ToolRetryResult
 from .core.runtime import MosaicHarness
+from .evaluation import (
+    Dataset,
+    DatasetCase,
+    DatasetFactory,
+    EvaluationReport,
+    EvaluationResult,
+    FinalAnswerEvaluator,
+    ToolArgumentsEvaluator,
+    ToolSelectionEvaluator,
+    evaluate_dataset,
+)
 from .models import (
     CapabilityCheck,
     CategoryCheck,
@@ -58,24 +97,44 @@ from .models import (
     ModelRequirements,
     ProviderRegistry,
 )
+from .models.router import ModelRouter, ModelRoutingDecision
 
 __all__ = [
+    "AGUIEvent",
+    "ActionSpaceConfig",
+    "AgentManifest",
     "AgentSpec",
+    "ApprovalDecision",
+    "ApprovalRequest",
+    "ApprovalService",
     "BuiltinsConfig",
     "CapabilityCheck",
     "CategoryCheck",
     "CompactionConfig",
+    "ContextBudget",
+    "ContextManager",
+    "ContextSelection",
+    "Dataset",
+    "DatasetCase",
+    "DatasetFactory",
     "DocumentsConfig",
     "DuplicateAgentError",
     "DuplicateToolError",
+    "EvaluationReport",
+    "EvaluationResult",
     "FilesystemConfig",
+    "FinalAnswerEvaluator",
+    "GovernedMemoryRecord",
     "HarnessEvent",
+    "InMemoryRunJournal",
     "InvalidAgentSpecError",
     "InvalidMCPConfigError",
     "InvalidModelSpecError",
+    "JsonlRunJournal",
     "LangSmithObservability",
     "MCPServerConfig",
     "MCPToolProvider",
+    "MemoryAdmission",
     "MemoryConfig",
     "MemoryRecord",
     "MessageRecord",
@@ -87,7 +146,10 @@ __all__ = [
     "ModelInspection",
     "ModelProvider",
     "ModelRequirements",
+    "ModelRouter",
+    "ModelRoutingDecision",
     "ModelSpec",
+    "MosaicAGUIApp",
     "MosaicConfig",
     "MosaicHarness",
     "MosaicHarnessError",
@@ -95,15 +157,25 @@ __all__ = [
     "MosaicSkill",
     "MosaicTool",
     "NetworkConfig",
+    "NoCompatibleModelError",
     "ObservabilityConfig",
     "ProviderRegistry",
+    "ReplayResult",
+    "RunAnalytics",
     "RunContext",
+    "RunJournal",
     "RunResult",
+    "SQLiteRunJournal",
     "SearchProvider",
     "SearchQuery",
     "SearchResponse",
     "SearchResult",
+    "SecretScrubber",
+    "SecurityPolicy",
+    "SecurityPolicyDecision",
     "SkillsConfig",
+    "TokenPricing",
+    "ToolArgumentsEvaluator",
     "ToolCallRecord",
     "ToolExecutionMiddleware",
     "ToolExecutionPolicy",
@@ -111,9 +183,14 @@ __all__ = [
     "ToolExecutionRecorder",
     "ToolRegistry",
     "ToolResult",
+    "ToolRetryResult",
+    "ToolSelectionEvaluator",
     "ToolsConfig",
     "UnknownAgentError",
     "UnknownModelProviderError",
     "UnknownToolError",
     "UnsupportedModelCapabilityError",
+    "evaluate_dataset",
+    "harness_agui_events",
+    "harness_agui_sse",
 ]
