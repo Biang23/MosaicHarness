@@ -1,0 +1,196 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Mosaic Canvas Agent Assembly concept</title>
+  <desc id="desc">A pixel-inspired visual canvas with a resource palette on the left, two floating agent nodes in the center, an optional attached workflow, and an inspector panel on the right.</desc>
+  <defs>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#2f4358" stroke-width="1" opacity="0.55"/>
+    </pattern>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="6" dy="7" stdDeviation="0" flood-color="#080d13" flood-opacity="0.7"/>
+    </filter>
+    <style>
+      .mono { font-family: "SF Mono", "Roboto Mono", monospace; }
+      .title { font-size: 26px; font-weight: 800; letter-spacing: 2px; fill: #f5f1e8; }
+      .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 2px; fill: #9bb0bf; }
+      .label { font-size: 14px; font-weight: 700; fill: #eef3f4; }
+      .small { font-size: 11px; fill: #9bb0bf; }
+      .tiny { font-size: 10px; fill: #9bb0bf; }
+      .panel { fill: #1c2b3b; stroke: #476076; stroke-width: 1; }
+      .tile { fill: #23384c; stroke: #557087; stroke-width: 1; }
+      .agent { fill: #203c4a; stroke: #31c1ad; stroke-width: 2; }
+      .workflow { fill: #3d3454; stroke: #d6a74b; stroke-width: 2; }
+      .resource { fill: #263649; stroke: #71889b; stroke-width: 1; }
+      .teal { fill: #31c1ad; }
+      .gold { fill: #d6a74b; }
+      .coral { fill: #e1735b; }
+      .violet { fill: #9182bd; }
+      .edge-teal { stroke: #31c1ad; stroke-width: 3; fill: none; }
+      .edge-gold { stroke: #d6a74b; stroke-width: 3; fill: none; stroke-dasharray: 8 7; }
+      .edge-coral { stroke: #e1735b; stroke-width: 3; fill: none; stroke-dasharray: 4 7; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1000" fill="#111b28"/>
+  <rect x="24" y="24" width="1552" height="952" rx="8" fill="#182637" stroke="#6a7f90" stroke-width="2"/>
+
+  <rect x="24" y="24" width="1552" height="72" fill="#23384c"/>
+  <rect x="50" y="42" width="38" height="38" fill="#d6a74b" stroke="#f5f1e8" stroke-width="3"/>
+  <text x="69" y="69" text-anchor="middle" class="mono label" fill="#17202a">M</text>
+  <text x="110" y="57" class="mono eyebrow">MOSAIC / FOUNDRY</text>
+  <text x="110" y="78" class="mono title" font-size="21">MOSAIC CANVAS</text>
+  <rect x="1377" y="46" width="142" height="29" fill="#153b3c" stroke="#31c1ad"/>
+  <circle cx="1394" cy="60" r="5" fill="#31c1ad"/>
+  <text x="1407" y="65" class="mono small" fill="#b9f2e9">LOCAL RUNTIME</text>
+
+  <!-- Resource palette -->
+  <rect x="42" y="116" width="258" height="804" class="panel"/>
+  <text x="64" y="152" class="mono eyebrow">RESOURCE PALETTE</text>
+  <text x="64" y="178" class="mono small">Drag a tile onto an Agent or canvas.</text>
+  <rect x="64" y="197" width="214" height="34" fill="#12202d" stroke="#557087"/>
+  <text x="80" y="219" class="mono small">Search tools, skills, models...</text>
+
+  <text x="64" y="267" class="mono eyebrow">MODELS</text>
+  <rect x="64" y="283" width="214" height="58" class="tile"/>
+  <rect x="78" y="297" width="20" height="20" class="violet"/>
+  <text x="112" y="306" class="mono label">GPT-4.1 mini</text>
+  <text x="112" y="323" class="mono tiny">tool calling / streaming</text>
+
+  <text x="64" y="378" class="mono eyebrow">TOOLS</text>
+  <rect x="64" y="394" width="214" height="58" class="tile"/>
+  <rect x="78" y="408" width="20" height="20" class="teal"/>
+  <text x="112" y="417" class="mono label">Web Search</text>
+  <text x="112" y="434" class="mono tiny">network / approval: no</text>
+  <rect x="64" y="460" width="214" height="58" class="tile"/>
+  <rect x="78" y="474" width="20" height="20" class="coral"/>
+  <text x="112" y="483" class="mono label">Read File</text>
+  <text x="112" y="500" class="mono tiny">filesystem / approval: yes</text>
+
+  <text x="64" y="544" class="mono eyebrow">SKILLS &amp; WORKFLOWS</text>
+  <rect x="64" y="560" width="214" height="58" class="tile"/>
+  <rect x="78" y="574" width="20" height="20" class="gold"/>
+  <text x="112" y="583" class="mono label">Research Skill</text>
+  <text x="112" y="600" class="mono tiny">load on demand</text>
+  <rect x="64" y="626" width="214" height="58" class="tile"/>
+  <rect x="78" y="640" width="20" height="20" class="violet"/>
+  <text x="112" y="649" class="mono label">Research Flow</text>
+  <text x="112" y="666" class="mono tiny">reusable workflow</text>
+
+  <text x="64" y="738" class="mono eyebrow">POLICIES</text>
+  <rect x="64" y="754" width="214" height="58" class="tile"/>
+  <rect x="78" y="768" width="20" height="20" class="coral"/>
+  <text x="112" y="777" class="mono label">Human Approval</text>
+  <text x="112" y="794" class="mono tiny">side effects / gate</text>
+
+  <!-- Canvas -->
+  <rect x="316" y="116" width="814" height="804" fill="#182a3b" stroke="#557087"/>
+  <rect x="316" y="116" width="814" height="804" fill="url(#grid)" opacity="0.85"/>
+  <text x="344" y="154" class="mono eyebrow">MOSAIC CANVAS / SYSTEM MAP</text>
+  <text x="344" y="179" class="mono small">Agents are first-class nodes. Workflows are optional attached capabilities.</text>
+  <rect x="922" y="138" width="174" height="30" fill="#153b3c" stroke="#31c1ad"/>
+  <text x="940" y="158" class="mono tiny" fill="#b9f2e9">AGENTIC DEFAULT</text>
+
+  <!-- Edges -->
+  <path d="M 736 409 C 784 435, 818 444, 845 473" class="edge-gold"/>
+  <path d="M 901 620 C 940 666, 950 704, 974 738" class="edge-coral"/>
+  <path d="M 629 690 C 570 730, 530 730, 490 700" class="edge-teal"/>
+  <text x="777" y="440" class="mono tiny" fill="#d6a74b">invokes workflow</text>
+  <text x="922" y="686" class="mono tiny" fill="#e1735b">handoff</text>
+  <text x="530" y="755" class="mono tiny" fill="#31c1ad">owns tools / skills</text>
+
+  <!-- Agent A -->
+  <g filter="url(#shadow)">
+    <rect x="430" y="260" width="330" height="270" class="agent"/>
+    <rect x="430" y="260" width="330" height="44" fill="#285b62"/>
+    <rect x="454" y="277" width="16" height="16" class="teal"/>
+    <text x="482" y="291" class="mono label">RESEARCH AGENT</text>
+    <text x="687" y="291" class="mono tiny" fill="#b9f2e9">DRAFT</text>
+    <text x="454" y="337" class="mono eyebrow">MODEL BINDING</text>
+    <rect x="454" y="350" width="274" height="34" class="resource"/>
+    <text x="470" y="372" class="mono small">GPT-4.1 mini</text>
+    <text x="454" y="414" class="mono eyebrow">EQUIPPED CAPABILITIES</text>
+    <rect x="454" y="428" width="82" height="27" fill="#176d6c" stroke="#31c1ad"/>
+    <text x="468" y="446" class="mono tiny" fill="#d8fffa">WEB SEARCH</text>
+    <rect x="546" y="428" width="78" height="27" fill="#674f27" stroke="#d6a74b"/>
+    <text x="560" y="446" class="mono tiny" fill="#fff1bd">SKILL</text>
+    <rect x="634" y="428" width="94" height="27" fill="#633b3e" stroke="#e1735b"/>
+    <text x="647" y="446" class="mono tiny" fill="#ffe0d8">APPROVAL</text>
+    <text x="454" y="488" class="mono eyebrow">ATTACHED WORKFLOWS</text>
+    <rect x="454" y="497" width="274" height="20" fill="#44375e" stroke="#9182bd"/>
+    <text x="466" y="512" class="mono tiny" fill="#e7dfff">Research &amp; Cite Flow</text>
+  </g>
+
+  <!-- Workflow card -->
+  <g filter="url(#shadow)">
+    <rect x="794" y="382" width="292" height="238" class="workflow"/>
+    <text x="818" y="414" class="mono eyebrow" fill="#f7e5b0">ATTACHED WORKFLOW</text>
+    <text x="818" y="442" class="mono label">RESEARCH &amp; CITE FLOW</text>
+    <rect x="818" y="463" width="72" height="34" class="resource"/>
+    <text x="835" y="485" class="mono tiny">TRIGGER</text>
+    <path d="M 890 480 L 913 480" class="edge-gold"/>
+    <rect x="916" y="463" width="72" height="34" class="resource"/>
+    <text x="932" y="485" class="mono tiny">SEARCH</text>
+    <path d="M 988 480 L 1011 480" class="edge-gold"/>
+    <rect x="1014" y="463" width="48" height="34" class="resource"/>
+    <text x="1024" y="485" class="mono tiny">CITE</text>
+    <text x="818" y="532" class="mono small">Reusable behavior module</text>
+    <text x="818" y="551" class="mono tiny">Can be attached to another Agent.</text>
+    <rect x="818" y="574" width="130" height="25" fill="#604d2a" stroke="#d6a74b"/>
+    <text x="832" y="591" class="mono tiny" fill="#fff1bd">EDIT WORKFLOW</text>
+  </g>
+
+  <!-- Agent B -->
+  <g filter="url(#shadow)">
+    <rect x="390" y="650" width="300" height="176" class="agent"/>
+    <rect x="390" y="650" width="300" height="42" fill="#285b62"/>
+    <rect x="414" y="666" width="16" height="16" class="teal"/>
+    <text x="442" y="680" class="mono label">REVIEW AGENT</text>
+    <text x="414" y="724" class="mono eyebrow">MODE</text>
+    <text x="474" y="724" class="mono small">agentic / human gate</text>
+    <text x="414" y="758" class="mono eyebrow">MODEL</text>
+    <text x="474" y="758" class="mono small">Claude Sonnet</text>
+    <text x="414" y="793" class="mono eyebrow">STATUS</text>
+    <text x="474" y="793" class="mono tiny" fill="#b9f2e9">READY FOR HANDOFF</text>
+  </g>
+
+  <!-- Inspector -->
+  <rect x="1148" y="116" width="404" height="804" class="panel"/>
+  <text x="1178" y="154" class="mono eyebrow">SELECTED NODE</text>
+  <text x="1178" y="188" class="mono title" font-size="20">RESEARCH AGENT</text>
+  <rect x="1374" y="166" width="126" height="26" fill="#153b3c" stroke="#31c1ad"/>
+  <text x="1391" y="184" class="mono tiny" fill="#b9f2e9">AGENTIC</text>
+
+  <text x="1178" y="236" class="mono eyebrow">SYSTEM PROMPT</text>
+  <rect x="1178" y="250" width="344" height="86" fill="#12202d" stroke="#557087"/>
+  <text x="1192" y="274" class="mono small">Research carefully. Prefer primary</text>
+  <text x="1192" y="293" class="mono small">sources, cite important claims, and</text>
+  <text x="1192" y="312" class="mono small">state uncertainty.</text>
+
+  <text x="1178" y="378" class="mono eyebrow">MODEL BINDINGS</text>
+  <rect x="1178" y="392" width="344" height="36" class="resource"/>
+  <text x="1192" y="415" class="mono small">PRIMARY  /  GPT-4.1 mini</text>
+  <rect x="1178" y="436" width="344" height="36" class="resource"/>
+  <text x="1192" y="459" class="mono small">FALLBACK  /  Claude Sonnet</text>
+
+  <text x="1178" y="514" class="mono eyebrow">DROP CONFIGURATION</text>
+  <rect x="1178" y="528" width="344" height="92" fill="#23384c" stroke="#d6a74b" stroke-width="2"/>
+  <rect x="1194" y="545" width="22" height="22" class="gold"/>
+  <text x="1232" y="558" class="mono label">DROP RESOURCE ON PORT</text>
+  <text x="1232" y="578" class="mono small">opens schema + permission dialog</text>
+  <rect x="1194" y="590" width="104" height="18" fill="#604d2a"/>
+  <text x="1206" y="603" class="mono tiny" fill="#fff1bd">CONFIGURE</text>
+
+  <text x="1178" y="676" class="mono eyebrow">CANVAS RELATIONSHIPS</text>
+  <text x="1178" y="705" class="mono small">owns  →  Tools / Skills</text>
+  <text x="1178" y="730" class="mono small">invokes  →  Workflows</text>
+  <text x="1178" y="755" class="mono small">handoff  →  Other Agents</text>
+  <text x="1178" y="780" class="mono small">binds  →  Models</text>
+
+  <rect x="42" y="936" width="1510" height="24" fill="#12202d"/>
+  <circle cx="65" cy="948" r="5" fill="#31c1ad"/>
+  <text x="79" y="953" class="mono tiny">owns</text>
+  <circle cx="145" cy="948" r="5" fill="#d6a74b"/>
+  <text x="159" y="953" class="mono tiny">invokes workflow</text>
+  <circle cx="310" cy="948" r="5" fill="#e1735b"/>
+  <text x="324" y="953" class="mono tiny">handoff</text>
+  <text x="1290" y="953" class="mono tiny">MOSAIC CANVAS CONCEPT / 01</text>
+</svg>

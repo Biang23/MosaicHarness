@@ -30,6 +30,7 @@ documents = [
   "pypdf>=5.0,<7.0",
   "python-docx>=1.1,<2.0",
 ]
+platform = ["uvicorn>=0.30,<1.0"]
 models = [
   "langchain-openai>=1.0,<2.0",
   "langchain-anthropic>=1.0,<2.0",

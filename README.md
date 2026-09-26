@@ -799,3 +799,16 @@ Server，也不需要 LangSmith 凭证。
 - [LangChain Skills](https://docs.langchain.com/oss/python/langchain/multi-agent/skills)
 - [LangSmith Tracing](https://docs.langchain.com/langsmith/trace-with-langchain)
 - [Mosaic Harness Architecture](docs/ARCHITECTURE.md)
+
+## Agent Foundry platform layer
+
+The creator-facing control plane lives in the decoupled `mosaic_harness.platform`
+package. It provides JSON-safe `AgentBlueprint` and immutable
+`ReleaseManifest` objects, a local blueprint repository, resource discovery,
+controlled connector declarations, starter templates, and a dependency-free
+`MosaicPlatformAPI` ASGI adapter. It consumes a narrow `RuntimeAdapter` protocol;
+the existing `MosaicHarness` remains the execution runtime and does not own
+platform state.
+
+See [docs/PLATFORM.md](docs/PLATFORM.md) and the standalone [studio](studio/)
+prototype for the pixel-map creator workflow.

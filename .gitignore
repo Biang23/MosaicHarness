@@ -7,3 +7,8 @@
 htmlcov/
 __pycache__/
 *.py[cod]
+studio/node_modules/
+studio/dist/
+studio/test-results/
+studio/playwright-report/
+*.tsbuildinfo
