@@ -26,6 +26,92 @@ export interface AgentCanvasNode {
   attachedWorkflowIds: string[];
 }
 
+export interface CanvasPosition {
+  x: number;
+  y: number;
+}
+
+export interface CanvasLayout {
+  id: string;
+  position: CanvasPosition;
+  size: { width: number; height: number };
+  z_index: number;
+  collapsed?: boolean;
+  locked?: boolean;
+}
+
+export interface CanvasAgentNode extends CanvasLayout {
+  kind: "agent";
+  blueprint_id: string;
+  blueprint_revision?: number;
+  behavior_mode: AgentBehaviorMode;
+}
+
+export interface CanvasWorkflowNode extends CanvasLayout {
+  kind: "workflow";
+  workflow_id: string;
+  workflow_version?: number;
+}
+
+export interface CanvasResourceNode extends CanvasLayout {
+  kind: "resource";
+  resource_instance_id: string;
+}
+
+export type CanvasNode = CanvasAgentNode | CanvasWorkflowNode | CanvasResourceNode;
+
+export interface CanvasEdge {
+  id: string;
+  type: "owns" | "binds" | "invokes" | "handoff" | "feeds";
+  source_node_id: string;
+  source_port: "model" | "tools" | "skills" | "workflows" | "input" | "output" | "handoff";
+  target_node_id: string;
+  target_port: "model" | "tools" | "skills" | "workflows" | "input" | "output" | "handoff";
+  enabled: boolean;
+  priority?: number;
+  condition?: string | null;
+}
+
+export interface CanvasDocument {
+  schema_version: "mosaic.canvas/v1";
+  id: string;
+  name: string;
+  description: string;
+  revision: number;
+  status: BlueprintStatus;
+  nodes: CanvasNode[];
+  edges: CanvasEdge[];
+  groups: Array<{ id: string; name: string; node_ids: string[]; position: CanvasPosition; size: { width: number; height: number }; color?: string }>;
+  viewport: { x: number; y: number; zoom: number };
+}
+
+export interface ResourceInstance {
+  id: string;
+  resource_id: string;
+  kind: "model" | "tool" | "skill" | "memory" | "policy" | "connector";
+  display_name: string;
+  config: Record<string, unknown>;
+  policy: { approval: "never" | "side_effects" | "always"; credential_ref: string | null; timeout_seconds: number; max_retries: number };
+  validation: { status: "unknown" | "valid" | "invalid" | "stale"; errors: string[]; warnings: string[]; validated_at: string | null };
+}
+
+export interface WorkflowDefinition {
+  id: string;
+  name: string;
+  version: number;
+  input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown>;
+  nodes: Array<{ id: string; type: "trigger" | "agent" | "tool" | "condition" | "approval" | "output"; object_ref?: string | null; config: Record<string, unknown> }>;
+  edges: Array<{ id: string; source_step_id: string; target_step_id: string; condition?: string | null }>;
+}
+
+export interface CanvasBundle {
+  canvas: CanvasDocument;
+  blueprints: Record<string, AgentBlueprintDto>;
+  resource_instances: Record<string, ResourceInstance>;
+  workflows: Record<string, WorkflowDefinition>;
+}
+
 export interface TemplateDto {
   id: string;
   name: string;

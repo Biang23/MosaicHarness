@@ -1,0 +1,403 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mosaic.local/contracts/canvas-document.schema.json",
+  "title": "Mosaic Canvas Document",
+  "description": "Authoritative persisted contract for the low-code Mosaic Canvas. Runtime AgentSpec objects are projections of referenced domain objects, not canvas nodes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "revision",
+    "status",
+    "nodes",
+    "edges",
+    "viewport"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "mosaic.canvas/v1"
+    },
+    "id": {
+      "$ref": "#/$defs/opaqueId"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "default": ""
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "published"]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/canvasNode"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/canvasEdge"
+      }
+    },
+    "viewport": {
+      "$ref": "#/$defs/viewport"
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/canvasGroup"
+      },
+      "default": []
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "opaqueId": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{1,127}$"
+    },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      }
+    },
+    "size": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "zoom"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "zoom": { "type": "number", "minimum": 0.25, "maximum": 4 }
+      }
+    },
+    "nodeBase": {
+      "type": "object",
+      "required": ["id", "kind", "position", "size", "z_index"],
+      "properties": {
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "kind": {
+          "type": "string",
+          "enum": ["agent", "workflow", "resource"]
+        },
+        "position": { "$ref": "#/$defs/position" },
+        "size": { "$ref": "#/$defs/size" },
+        "z_index": { "type": "integer", "minimum": 0 },
+        "collapsed": { "type": "boolean", "default": false },
+        "locked": { "type": "boolean", "default": false }
+      }
+    },
+    "agentNode": {
+      "allOf": [
+        { "$ref": "#/$defs/nodeBase" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "kind",
+            "position",
+            "size",
+            "z_index",
+            "blueprint_id",
+            "behavior_mode"
+          ],
+          "properties": {
+            "id": { "$ref": "#/$defs/opaqueId" },
+            "kind": { "const": "agent" },
+            "position": { "$ref": "#/$defs/position" },
+            "size": { "$ref": "#/$defs/size" },
+            "z_index": { "type": "integer", "minimum": 0 },
+            "collapsed": { "type": "boolean", "default": false },
+            "locked": { "type": "boolean", "default": false },
+            "blueprint_id": { "$ref": "#/$defs/opaqueId" },
+            "blueprint_revision": { "type": "integer", "minimum": 0 },
+            "behavior_mode": {
+              "type": "string",
+              "enum": ["agentic", "workflow_assisted", "workflow_first"]
+            }
+          }
+        }
+      ]
+    },
+    "workflowNode": {
+      "allOf": [
+        { "$ref": "#/$defs/nodeBase" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "kind",
+            "position",
+            "size",
+            "z_index",
+            "workflow_id"
+          ],
+          "properties": {
+            "id": { "$ref": "#/$defs/opaqueId" },
+            "kind": { "const": "workflow" },
+            "position": { "$ref": "#/$defs/position" },
+            "size": { "$ref": "#/$defs/size" },
+            "z_index": { "type": "integer", "minimum": 0 },
+            "collapsed": { "type": "boolean", "default": false },
+            "locked": { "type": "boolean", "default": false },
+            "workflow_id": { "$ref": "#/$defs/opaqueId" },
+            "workflow_version": { "type": "integer", "minimum": 1 }
+          }
+        }
+      ]
+    },
+    "resourceNode": {
+      "allOf": [
+        { "$ref": "#/$defs/nodeBase" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "kind",
+            "position",
+            "size",
+            "z_index",
+            "resource_instance_id"
+          ],
+          "properties": {
+            "id": { "$ref": "#/$defs/opaqueId" },
+            "kind": { "const": "resource" },
+            "position": { "$ref": "#/$defs/position" },
+            "size": { "$ref": "#/$defs/size" },
+            "z_index": { "type": "integer", "minimum": 0 },
+            "collapsed": { "type": "boolean", "default": false },
+            "locked": { "type": "boolean", "default": false },
+            "resource_instance_id": { "$ref": "#/$defs/opaqueId" }
+          }
+        }
+      ]
+    },
+    "canvasNode": {
+      "oneOf": [
+        { "$ref": "#/$defs/agentNode" },
+        { "$ref": "#/$defs/workflowNode" },
+        { "$ref": "#/$defs/resourceNode" }
+      ]
+    },
+    "canvasEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "source_node_id",
+        "source_port",
+        "target_node_id",
+        "target_port",
+        "enabled"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "type": {
+          "type": "string",
+          "enum": ["owns", "binds", "invokes", "handoff", "feeds"]
+        },
+        "source_node_id": { "$ref": "#/$defs/opaqueId" },
+        "source_port": {
+          "type": "string",
+          "enum": ["model", "tools", "skills", "workflows", "input", "output", "handoff"]
+        },
+        "target_node_id": { "$ref": "#/$defs/opaqueId" },
+        "target_port": {
+          "type": "string",
+          "enum": ["model", "tools", "skills", "workflows", "input", "output", "handoff"]
+        },
+        "enabled": { "type": "boolean" },
+        "priority": { "type": "integer", "minimum": 0, "default": 0 },
+        "condition": {
+          "type": ["string", "null"],
+          "maxLength": 1000,
+          "default": null
+        }
+      }
+    },
+    "canvasGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "node_ids", "position", "size"],
+      "properties": {
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "node_ids": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/opaqueId" },
+          "uniqueItems": true
+        },
+        "position": { "$ref": "#/$defs/position" },
+        "size": { "$ref": "#/$defs/size" },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      }
+    },
+    "resourceInstance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "resource_id",
+        "kind",
+        "display_name",
+        "config",
+        "policy",
+        "validation"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "resource_id": { "$ref": "#/$defs/opaqueId" },
+        "kind": {
+          "type": "string",
+          "enum": ["model", "tool", "skill", "memory", "policy", "connector"]
+        },
+        "display_name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "config": { "type": "object" },
+        "policy": {
+          "$ref": "#/$defs/resourcePolicy"
+        },
+        "validation": {
+          "$ref": "#/$defs/validationState"
+        }
+      }
+    },
+    "resourcePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approval", "timeout_seconds", "max_retries"],
+      "properties": {
+        "approval": {
+          "type": "string",
+          "enum": ["never", "side_effects", "always"]
+        },
+        "credential_ref": {
+          "type": ["string", "null"],
+          "pattern": "^(env|keychain):[A-Za-z][A-Za-z0-9_.-]*$"
+        },
+        "timeout_seconds": { "type": "number", "exclusiveMinimum": 0, "maximum": 300 },
+        "max_retries": { "type": "integer", "minimum": 0, "maximum": 10 }
+      }
+    },
+    "validationState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "errors", "warnings"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["unknown", "valid", "invalid", "stale"]
+        },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "validated_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "workflowDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "version",
+        "input_schema",
+        "output_schema",
+        "nodes",
+        "edges"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "version": { "type": "integer", "minimum": 1 },
+        "input_schema": { "type": "object" },
+        "output_schema": { "type": "object" },
+        "nodes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workflowStep" }
+        },
+        "edges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workflowEdge" }
+        }
+      }
+    },
+    "workflowStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "config"],
+      "properties": {
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "type": {
+          "type": "string",
+          "enum": ["trigger", "agent", "tool", "condition", "approval", "output"]
+        },
+        "object_ref": {
+          "type": ["string", "null"]
+        },
+        "config": { "type": "object" }
+      }
+    },
+    "workflowEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source_step_id", "target_step_id"],
+      "properties": {
+        "id": { "$ref": "#/$defs/opaqueId" },
+        "source_step_id": { "$ref": "#/$defs/opaqueId" },
+        "target_step_id": { "$ref": "#/$defs/opaqueId" },
+        "condition": {
+          "type": ["string", "null"],
+          "maxLength": 1000
+        }
+      }
+    }
+  }
+}

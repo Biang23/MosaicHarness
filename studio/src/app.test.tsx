@@ -63,4 +63,18 @@ describe("Mosaic Canvas Agent Assembly", () => {
     await user.type(prompt, "Use the equipped capabilities and explain uncertainty.");
     expect(prompt).toHaveValue("Use the equipped capabilities and explain uncertainty.");
   });
+
+  it("moves an Agent node and reports a persisted Canvas Document position", async () => {
+    const user = userEvent.setup();
+    render(<FoundryApp />);
+    await user.click(screen.getByTestId("template-support"));
+    const node = screen.getByTestId("agent-node-support-agent");
+    const canvas = screen.getByTestId("agent-canvas");
+    const dataTransfer = { value: "", setData: (_type: string, value: string) => { dataTransfer.value = value; }, getData: () => dataTransfer.value };
+
+    fireEvent.dragStart(node, { dataTransfer });
+    fireEvent.drop(canvas, { dataTransfer, clientX: 520, clientY: 360 });
+
+    expect(screen.getByText("Agent node position saved to the Canvas Document.")).toBeInTheDocument();
+  });
 });
